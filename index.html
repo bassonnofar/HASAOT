@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>הסעות עיינות</title>
+<meta name="theme-color" content="#1f4e5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="הסעות עיינות">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<style>
+:root{
+  --bg:#f4f1ea; --card:#fff; --ink:#1d2a30; --mute:#6b7a80; --line:#e4ded2;
+  --pri:#1f4e5f; --pri2:#2c6e84; --ok:#2e8b57; --okbg:#e3f3ea; --bad:#c0392b; --badbg:#fbe6e3;
+  --warn:#d68910; --warnbg:#fdf1dc; --info:#2e6fb7; --infobg:#e5effa; --grey:#eef0f0;
+  --r:16px; --sh:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,sans-serif;font-size:16px;line-height:1.45}
+body{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--pri2)}
+.wrap{max-width:720px;margin:0 auto;padding:12px 14px}
+header.top{position:sticky;top:0;z-index:50;background:var(--pri);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header.top h1{font-size:18px;margin:0;font-weight:800;flex:1}
+header.top .sub{font-size:12px;opacity:.85;font-weight:400}
+header.top button{background:rgba(255,255,255,.15);border:0;color:#fff;border-radius:10px;padding:6px 10px;font-size:14px}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:14px;margin:0 0 12px}
+.card h2{font-size:17px;margin:0 0 8px;font-weight:700}
+.card h3{font-size:15px;margin:10px 0 6px}
+.muted{color:var(--mute);font-size:14px}
+.small{font-size:13px}
+.big{font-size:28px;font-weight:800;line-height:1.15}
+.row{display:flex;align-items:center;gap:8px}
+.row.wrap2{flex-wrap:wrap}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.grow{flex:1;min-width:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:12px;padding:12px 16px;font-weight:700;background:var(--pri);color:#fff;cursor:pointer;text-decoration:none;min-height:46px}
+.btn:active{transform:scale(.98)}
+.btn.block{display:flex;width:100%}
+.btn.sec{background:var(--grey);color:var(--ink)}
+.btn.ok{background:var(--ok)}.btn.bad{background:var(--bad)}.btn.warn{background:var(--warn)}
+.btn.out{background:#fff;color:var(--pri);border:1.5px solid var(--pri)}
+.btn.sm{padding:6px 10px;min-height:36px;font-size:14px;border-radius:10px}
+.btn.xs{padding:4px 8px;min-height:32px;font-size:13px;border-radius:9px;font-weight:600}
+.btn[disabled]{opacity:.5}
+.btns{display:grid;gap:8px}
+.btns.c2{grid-template-columns:1fr 1fr}.btns.c3{grid-template-columns:1fr 1fr 1fr}
+label.f{display:block;font-size:14px;color:var(--mute);margin:10px 0 4px}
+input.i,select.i,textarea.i{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:16px}
+input.i:focus,select.i:focus,textarea.i:focus{outline:none;border-color:var(--pri2)}
+.chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0;font-size:15px}
+.chk input{width:22px;height:22px;margin-top:2px;flex:none}
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:600;background:var(--grey);color:var(--ink);white-space:nowrap}
+.pill.ok{background:var(--okbg);color:var(--ok)}.pill.bad{background:var(--badbg);color:var(--bad)}
+.pill.warn{background:var(--warnbg);color:#a5680a}.pill.info{background:var(--infobg);color:var(--info)}
+.pill.dark{background:var(--pri);color:#fff}
+.banner{border-radius:14px;padding:12px 14px;margin:0 0 12px;font-weight:600}
+.banner.info{background:var(--infobg);color:#1c4f87}.banner.warn{background:var(--warnbg);color:#8a5506}.banner.bad{background:var(--badbg);color:var(--bad)}.banner.ok{background:var(--okbg);color:#1f6b42}
+.list{list-style:none;margin:0;padding:0}
+.list li{padding:10px 0;border-bottom:1px solid var(--line)}
+.list li:last-child{border-bottom:0}
+.kid{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.kid:last-child{border-bottom:0}
+.kid .nm{flex:1;min-width:0;font-weight:600}
+.kid .nm small{display:block;font-weight:400;color:var(--mute);font-size:12px}
+.stops{position:relative;margin:6px 0 0;padding:0}
+.stop{display:flex;gap:10px;align-items:flex-start;padding:6px 0;position:relative}
+.stop .dot{width:16px;height:16px;border-radius:50%;border:3px solid var(--line);background:#fff;flex:none;margin-top:3px;z-index:1}
+.stop.passed .dot{background:var(--ok);border-color:var(--ok)}
+.stop.now .dot{background:var(--warn);border-color:var(--warn);box-shadow:0 0 0 5px rgba(214,137,16,.2)}
+.stop.mine .nm2{font-weight:800}
+.stops:before{content:"";position:absolute;right:7px;top:12px;bottom:12px;width:2px;background:var(--line)}
+.stop .nm2{flex:1}
+.stop .tm{font-weight:700;color:var(--mute);font-variant-numeric:tabular-nums}
+nav.bottom{position:fixed;bottom:0;left:0;right:0;z-index:60;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+nav.bottom button{flex:1;border:0;background:none;padding:6px 2px;font-size:12px;color:var(--mute);display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+nav.bottom button .ic{font-size:21px;line-height:1}
+nav.bottom button.on{color:var(--pri);font-weight:700}
+nav.bottom .badge{position:absolute;top:0;left:calc(50% - 22px);background:var(--bad);color:#fff;border-radius:99px;font-size:11px;padding:0 6px;font-weight:700}
+.tabs{display:flex;gap:6px;overflow:auto;margin:0 0 12px;padding-bottom:2px}
+.tabs button{border:0;background:#fff;border-radius:999px;padding:8px 14px;font-weight:600;white-space:nowrap;box-shadow:var(--sh)}
+.tabs button.on{background:var(--pri);color:#fff}
+.alert{display:flex;gap:8px;align-items:center;padding:9px 10px;border-radius:12px;margin:0 0 6px;font-size:14px}
+.alert.red{background:var(--badbg)}.alert.orange{background:var(--warnbg)}.alert.blue{background:var(--infobg)}
+.alert .t{flex:1;min-width:0}
+.alert .t b{display:block;font-size:12px;color:var(--mute);font-weight:600}
+.line-card{border-right:6px solid var(--pri2)}
+.line-card.arrived{border-right-color:var(--ok)}.line-card.route{border-right-color:var(--warn)}
+.prog{height:8px;background:var(--grey);border-radius:9px;overflow:hidden;margin:8px 0 4px}
+.prog i{display:block;height:100%;background:var(--ok);border-radius:9px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.kv b{color:var(--mute);font-weight:500}
+.map{height:240px;border-radius:14px;overflow:hidden;margin-top:8px;z-index:1}
+.map.tall{height:calc(100vh - 220px)}
+.modal-bg{position:fixed;inset:0;background:rgba(10,20,25,.45);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 14px calc(18px + env(safe-area-inset-bottom))}
+.modal .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.modal .mh h2{margin:0;font-size:19px}
+.x{border:0;background:var(--grey);border-radius:50%;width:36px;height:36px;font-size:18px}
+.toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#1d2a30;color:#fff;padding:10px 16px;border-radius:12px;z-index:200;font-size:15px;max-width:90vw;text-align:center}
+.center{text-align:center}
+.hero{padding:26px 16px;text-align:center}
+.hero .emoji{font-size:54px}
+.search{position:sticky;top:64px;z-index:5;background:var(--bg);padding:6px 0}
+.pick{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:right;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin:0 0 6px}
+.pick.taken{opacity:.55}
+.sel{border-color:var(--pri2);background:var(--infobg)}
+.spin{display:inline-block;width:18px;height:18px;border:3px solid rgba(0,0,0,.15);border-top-color:var(--pri);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-left:4px;animation:pl 1.6s infinite}
+@keyframes pl{50%{opacity:.25}}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th,table.t td{padding:7px 4px;border-bottom:1px solid var(--line);text-align:right}
+table.t th{color:var(--mute);font-weight:500}
+details summary{cursor:pointer;list-style:none}
+details summary::-webkit-details-marker{display:none}
+.hr{height:1px;background:var(--line);margin:12px 0}
+.empty{padding:26px 10px;text-align:center;color:var(--mute)}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal"></div>
+
+<script>
+/* ===================== הגדרות ===================== */
+// להדביק כאן את כתובת ה-Web App של Apps Script (נגמרת ב-/exec)
+const API_URL = 'https://script.google.com/macros/s/AKfycbz5jlh-JUGblK46cCMq8KdWPsikwY805RMjx2ODuwu-zTWB5dQv4EvbCPlGfdr3G5YhOw/exec';
+const APP_URL = location.origin + location.pathname;
+const VILLAGE = 'כפר עיינות';
+
+/* ===================== כלים ===================== */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const LS = { get: k => { try { return localStorage.getItem(k) } catch (e) { return null } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v) } catch (e) { } } };
+const hm = ms => ms ? new Date(ms).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : '';
+const ago = ms => { if (!ms) return ''; const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? 'עכשיו' : m < 60 ? `לפני ${m} דק׳` : `לפני ${Math.floor(m / 60)} שע׳`; };
+const telLink = p => 'tel:' + String(p || '').replace(/\D/g, '');
+const waLink = (p, text) => { let d = String(p || '').replace(/\D/g, ''); if (d.startsWith('0')) d = '972' + d.slice(1); return `https://wa.me/${d}?text=${encodeURIComponent(text)}`; };
+const fmtPhone = p => { const d = String(p || '').replace(/\D/g, ''); return d.length === 10 ? d.slice(0, 3) + '-' + d.slice(3) : d; };
+function toast(msg, ms = 2600) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), ms); }
+
+async function api(action, data = {}) {
+  if (API_URL.startsWith('PASTE')) throw new Error('המערכת עוד לא חוברה לשרת (API_URL)');
+  const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ action }, data)), redirect: 'follow' });
+  const j = await res.json();
+  if (!j.ok) { const e = new Error(j.error || 'שגיאה'); e.code = j.error; throw e; }
+  return j;
+}
+async function act(btn, fn) {
+  if (btn) { btn.disabled = true; btn._t = btn.innerHTML; btn.innerHTML = '<span class="spin"></span>'; }
+  try { return await fn(); }
+  catch (e) { if (e.code === 'AUTH') return logout(true); toast(e.message || 'שגיאה'); }
+  finally { if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = btn._t; } }
+}
+
+/* ---------- סטטוסים ---------- */
+const ST = {
+  none: { t: 'לא דווח', c: '' }, here: { t: 'בתחנה', c: 'info' }, late: { t: 'מאחר/ת', c: 'warn' },
+  cancel: { t: 'לא נוסע/ת', c: '' }, on: { t: 'עלה/תה ✓', c: 'ok' }, no: { t: 'לא הגיע/ה ✗', c: 'bad' }
+};
+const stPill = s => { const d = ST[s.s] || ST.none; return `<span class="pill ${d.c}">${d.t}${s.s === 'late' && s.mins ? ' ' + s.mins + '׳' : ''}</span>`; };
+const LINE_ST = { wait: ['טרם יצא', ''], route: ['בדרך', 'warn'], arrived: ['הגיע לכפר', 'ok'] };
+
+/* ---------- מודאל ---------- */
+function openModal(title, html, onMount) {
+  const m = $('#modal');
+  m.innerHTML = `<div class="modal-bg"><div class="modal"><div class="mh"><h2>${title}</h2><button class="x" data-close>✕</button></div><div id="mbody">${html}</div></div></div>`;
+  m.querySelector('[data-close]').onclick = closeModal;
+  m.querySelector('.modal-bg').onclick = e => { if (e.target.classList.contains('modal-bg')) closeModal(); };
+  if (onMount) onMount($('#mbody'));
+}
+function closeModal() { $('#modal').innerHTML = ''; }
+const modalOpen = () => !!$('#modal .modal');
+
+/* ---------- מפות ---------- */
+const maps = {};
+function busIcon(label, fresh) {
+  return L.divIcon({ className: '', iconSize: null, html: `<div style="transform:translate(50%,-50%);background:${fresh ? '#d68910' : '#8a9599'};color:#fff;border-radius:12px;padding:3px 8px;font:700 13px Heebo;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">🚌 ${esc(label)}</div>` });
+}
+function drawMap(id, points) {
+  const el = document.getElementById(id);
+  if (!el || !window.L) return;
+  let m = maps[id];
+  if (!m || m._container !== el) {
+    m = maps[id] = L.map(el, { zoomControl: true, attributionControl: false }).setView([31.8, 34.9], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(m);
+    m._lay = L.layerGroup().addTo(m);
+  }
+  m._lay.clearLayers();
+  const b = [];
+  points.forEach(p => { L.marker([p.lat, p.lng], { icon: busIcon(p.label, p.fresh) }).addTo(m._lay); b.push([p.lat, p.lng]); });
+  if (b.length === 1) m.setView(b[0], 13); else if (b.length) m.fitBounds(b, { padding: [40, 40] });
+  setTimeout(() => m.invalidateSize(), 50);
+}
+
+/* ---------- סקר (polling) ---------- */
+let pollT = null, pollFn = null, pollMs = 30000;
+function startPoll(fn, ms) { pollFn = fn; pollMs = ms; clearTimeout(pollT); tick(); }
+async function tick() {
+  clearTimeout(pollT);
+  if (!pollFn) return;
+  if (document.visibilityState === 'visible') { try { await pollFn(); } catch (e) { } }
+  pollT = setTimeout(tick, pollMs);
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && pollFn) tick(); });
+
+/* =====================================================================
+   אפליקציית החניכים
+   ===================================================================== */
+const K = { me: null, roster: null, pick: null, respMode: LS.get('hs_resp') === '1', gps: null, lastPos: 0, wake: null };
+
+function kidHeader(sub) {
+  return `<header class="top"><div style="flex:1"><h1>🚌 הסעות ${VILLAGE}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div>
+  <button onclick="kidRefresh(this)" aria-label="רענון">⟳</button></header>`;
+}
+async function kidInit() {
+  document.title = 'הסעות ' + VILLAGE;
+  $('#app').innerHTML = kidHeader() + `<div class="wrap"><div class="empty"><span class="spin"></span></div></div>`;
+  startPoll(kidLoad, 30000);
+}
+async function kidRefresh(btn) { await act(btn, kidLoad); }
+async function kidLoad() {
+  const token = LS.get('hs_token');
+  if (!token) { K.me = { registered: false }; return kidRender(); }
+  try { K.me = await api('me', { token }); }
+  catch (e) { if (!K.me) $('#app').innerHTML = kidHeader() + `<div class="wrap"><div class="banner bad">${esc(e.message)}</div></div>`; return; }
+  if (!K.me.registered) LS.set('hs_token', null);
+  pollMs = (K.me.isResp && K.respMode) ? 15000 : 30000;
+  if (!K.me.isResp && K.gps) stopGps();
+  kidRender();
+}
+function kidRender() {
+  if (modalOpen()) return;
+  const d = K.me;
+  if (!d.registered) return kidWelcome();
+  if (d.status === 'pending') {
+    $('#app').innerHTML = kidHeader() + `<div class="wrap"><div class="card hero"><div class="emoji">⏳</div><h2>הבקשה שלך ממתינה לאישור</h2>
+    <p class="muted">השם ${esc(d.me.name)} ${esc(d.me.group)} כבר רשום ממכשיר אחר, אז צוות הכפר צריך לאשר את ההרשמה.<br>אחרי האישור המסך יתעדכן לבד.</p>
+    <button class="btn sec" onclick="kidStartRegister()">טעיתי בשם — בחירה מחדש</button></div></div>`;
+    return;
+  }
+  if (K.respMode && d.isResp) return respRender();
+  let h = kidHeader(d.me.name + ' · ' + d.me.group) + '<div class="wrap">';
+  if (d.day && d.day.announce) h += `<div class="banner info">📢 ${esc(d.day.announce.text)}</div>`;
+  if (!d.day) {
+    h += `<div class="card hero"><div class="emoji">🌙</div><h2>עוד לא נפתח יום הסעות</h2><p class="muted">ביום ההסעה יופיעו כאן התחנה שלך, השעה, ומי האחראי/ת בהסעה.</p></div>`;
+    h += kidDetailsCard();
+    $('#app').innerHTML = h + '</div>'; return;
+  }
+  if (!d.onList) {
+    h += `<div class="card hero"><div class="emoji">🔎</div><h2>לא מצאנו אותך ברשימת ההסעות של היום</h2>
+    <p class="muted">אם את/ה אמור/ה לנסוע — דבר/י עם המדריך/ה. ייתכן שהשם שלך כתוב השבוע קצת אחרת.</p>
+    <button class="btn out block" onclick="kidStartRegister(true)">אני ברשימה בשם אחר</button></div>`;
+    h += kidDetailsCard();
+    $('#app').innerHTML = h + '</div>'; return;
+  }
+  const l = d.line, st = d.station, my = d.my;
+  if (l.msg) h += `<div class="banner warn">📢 ${esc(l.line || l.name)}: ${esc(l.msg.text)}</div>`;
+  if (d.isResp) h += d.isBackup ? `<button class="btn block sec" style="margin-bottom:12px" onclick="setRespMode(true)">את/ה המחליף/ה של האחראי/ת — למסך האחראי/ת (רק אם התבקשת)</button>`
+    : `<button class="btn block warn" style="margin-bottom:12px" onclick="setRespMode(true)">⭐ את/ה האחראי/ת בהסעה — למסך האחראי/ת</button>`;
+
+  // סטטוס אישי
+  if (my.s === 'on') h += `<div class="banner ok">✅ סומנת כמי שעלה/תה להסעה. נסיעה טובה!</div>`;
+  if (my.s === 'no') h += `<div class="banner bad">סומנת כמי שלא הגיע/ה לתחנה. אם זו טעות — התקשר/י לאחראי/ת.</div>`;
+
+  // כרטיס התחנה
+  h += `<div class="card"><div class="muted">${esc(l.name)}</div>
+    <div class="spread" style="margin-top:4px"><div class="grow"><div class="muted small">התחנה שלך</div><div class="big">${esc(st.name)}</div></div>
+    <div class="center"><div class="muted small">איסוף</div><div class="big">${esc(st.time)}</div></div></div>
+    ${st.note ? `<div class="banner info" style="margin:10px 0 0">📍 איפה לחכות: ${esc(st.note)}</div>` : ''}
+    ${st.mapUrl ? `<a class="btn sec sm" style="margin-top:8px" href="${esc(st.mapUrl)}" target="_blank" rel="noopener">פתיחת התחנה במפה</a>` : ''}
+  </div>`;
+
+  // כפתורי דיווח
+  if (my.s !== 'on' && l.state !== 'arrived') {
+    const cur = my.s;
+    h += `<div class="card"><h2>דיווח לאחראי/ת</h2>
+      ${cur !== 'none' && cur !== 'no' ? `<div class="spread" style="margin-bottom:10px"><div>הדיווח שלך: ${stPill(my)} <span class="muted small">${hm(my.ts)}</span></div><button class="btn xs sec" onclick="kidReport(this,'clear')">ביטול</button></div>` : ''}
+      <div class="btns c2">
+        <button class="btn ok" onclick="kidReport(this,'here')">📍 אני בתחנה</button>
+        <button class="btn warn" onclick="kidLate()">⏱ אני מאחר/ת</button>
+      </div>
+      <button class="btn sec block" style="margin-top:8px" onclick="kidCancel()">לא נוסע/ת היום</button></div>`;
+  }
+
+  // מצב ההסעה
+  h += `<div class="card"><div class="spread"><h2>איפה ההסעה</h2><span class="pill ${LINE_ST[l.state][1]}">${LINE_ST[l.state][0]}</span></div>`;
+  if (l.state === 'wait') h += `<p class="muted">ההסעה עוד לא יצאה. יציאה מהתחנה הראשונה ב-${esc(l.stations[0].time)}.</p>`;
+  if (l.state === 'route') {
+    const left = st.idx - l.curIdx;
+    h += `<p>יצאה מ<b>${esc(l.cur)}</b> ב-${hm(l.curTs)}. ` + (left > 0 ? `<b>${left === 1 ? 'התחנה הבאה היא שלך!' : 'עוד ' + left + ' תחנות עד אליך'}</b>` : `<b>ההסעה כבר עברה את התחנה שלך.</b>`) + `</p>`;
+  }
+  if (l.state === 'arrived') h += `<p>🏡 ההסעה הגיעה לכפר ב-${hm(l.arrivedAt)}.</p>`;
+  h += `<div class="stops">` + l.stations.map((s, i) => {
+    const cls = i <= l.curIdx ? 'passed' : (i === l.curIdx + 1 && l.state === 'route') ? 'now' : '';
+    return `<div class="stop ${cls} ${i === st.idx ? 'mine' : ''}"><span class="dot"></span><span class="nm2">${esc(s.name)}${i === st.idx ? ' ← התחנה שלך' : ''}</span><span class="tm">${esc(s.time)}</span></div>`;
+  }).join('') + `</div>`;
+  const fresh = l.pos && Date.now() - l.pos.ts < 10 * 60000;
+  if (l.state === 'route' && fresh) h += `<div class="muted small" style="margin-top:8px"><span class="live"></span> מיקום האוטובוס עודכן ${ago(l.pos.ts)}</div><div id="kmap" class="map"></div><a class="small" href="https://www.google.com/maps?q=${l.pos.lat},${l.pos.lng}" target="_blank" rel="noopener">פתיחת המיקום בגוגל מפות</a>`;
+  h += `</div>`;
+
+  // אחראי ונהג
+  h += `<div class="card"><h2>מי בהסעה</h2>`;
+  if (l.resp) {
+    h += `<div class="spread"><div><div class="muted small">החניך/ה האחראי/ת</div><b>${esc(l.resp.name)}</b> <span class="muted">${esc(l.resp.group)}</span></div>
+      ${l.resp.phone ? `<a class="btn ok sm" href="${telLink(l.resp.phone)}">📞 התקשרות</a>` : ''}</div>`;
+    if (!l.resp.phone) h += `<div class="muted small">אפשר לעדכן את האחראי/ת בכפתורי הדיווח למעלה.</div>`;
+  } else h += `<div class="muted">האחראי/ת יוגדר/ת לפני היציאה.</div>`;
+  const dr = l.driver;
+  if (dr.name || dr.plate) h += `<div class="hr"></div><div class="kv"><b>נהג/ת</b><span>${esc(dr.name || '—')}</span>${dr.type ? `<b>רכב</b><span>${esc(dr.type)}</span>` : ''}${dr.color ? `<b>צבע</b><span>${esc(dr.color)}</span>` : ''}${dr.plate ? `<b>מספר רכב</b><span style="direction:ltr;text-align:right">${esc(dr.plate)}</span>` : ''}</div>`;
+  h += `</div>`;
+  h += kidDetailsCard();
+  $('#app').innerHTML = h + '</div>';
+  if (l.state === 'route' && fresh) drawMap('kmap', [{ lat: l.pos.lat, lng: l.pos.lng, label: l.name, fresh: true }]);
+}
+function kidDetailsCard() {
+  const m = K.me.me;
+  return `<details class="card"><summary class="spread"><span class="muted">הפרטים שלי</span><span class="muted">▾</span></summary>
+    <div class="kv" style="margin-top:10px"><b>שם</b><span>${esc(m.name)} · ${esc(m.group)}</span><b>טלפון</b><span>${esc(fmtPhone(m.phone))}</span><b>הצגת מספר כשאני אחראי/ת</b><span>${m.consent ? 'מאושר' : 'לא מאושר'}</span></div>
+    <div class="btns c2" style="margin-top:10px"><button class="btn sec sm" onclick="kidEditDetails()">עדכון פרטים</button><button class="btn sec sm" onclick="kidStartRegister()">זה לא אני</button></div></details>`;
+}
+async function kidReport(btn, type, mins) {
+  await act(btn, async () => { await api('report', { token: LS.get('hs_token'), type, mins }); closeModal(); toast(type === 'clear' ? 'הדיווח בוטל' : 'הדיווח נשלח לאחראי/ת ✓'); await kidLoad(); });
+}
+function kidLate() {
+  openModal('בכמה זמן תאחר/י?', `<p class="muted">האחראי/ת בהסעה יראה/תראה את זה מיד.</p><div class="btns c2">${[3, 5, 10, 15, 20, 30].map(m => `<button class="btn warn" onclick="kidReport(this,'late',${m})">${m} דק׳</button>`).join('')}</div>`);
+}
+function kidCancel() {
+  openModal('לא נוסע/ת היום?', `<p>נעדכן את האחראי/ת ואת הצוות שלא תעלה/י להסעה היום.</p><p class="muted small">אם את/ה מגיע/ה לכפר בדרך אחרת — חשוב שגם המדריך/ה ידע.</p>
+  <div class="btns c2"><button class="btn bad" onclick="kidReport(this,'cancel')">כן, לא נוסע/ת</button><button class="btn sec" data-close onclick="closeModal()">חזרה</button></div>`);
+}
+
+/* ---------- הרשמה ---------- */
+function kidWelcome() {
+  $('#app').innerHTML = kidHeader() + `<div class="wrap"><div class="card hero"><div class="emoji">🚌</div><h2>ברוכים הבאים להסעות ${VILLAGE}</h2>
+  <p class="muted">כאן תראו כל מוצ״ש את התחנה שלכם, מתי ההסעה מגיעה ומי האחראי/ת. נרשמים פעם אחת — לוקח דקה.</p>
+  <button class="btn block" onclick="kidStartRegister()">הרשמה</button></div>
+  <div class="card small muted">💡 כדאי להוסיף את הדף למסך הבית: בתפריט הדפדפן ← "הוספה למסך הבית".</div></div>`;
+}
+async function kidStartRegister(changeName) {
+  K.pick = null; K.changeName = !!changeName;
+  $('#app').innerHTML = kidHeader('הרשמה') + `<div class="wrap"><div class="empty"><span class="spin"></span> טוען רשימה...</div></div>`;
+  await act(null, async () => { K.roster = await api('roster'); kidPickRender(''); });
+}
+function kidPickRender(q) {
+  const qq = (q || '').trim();
+  const lines = (K.roster && K.roster.lines) || [];
+  let h = kidHeader('הרשמה · שלב 1 מתוך 2') + `<div class="wrap"><h2 style="margin:4px 0">מי את/ה?</h2><p class="muted" style="margin-top:0">בחר/י את השם שלך כמו שהוא מופיע ברשימת ההסעות.</p>
+  <div class="search"><input class="i" id="q" placeholder="🔍 חיפוש שם או קבוצה" value="${esc(qq)}" autocomplete="off"></div><div id="plist">`;
+  let n = 0;
+  lines.forEach(l => {
+    const kids = l.kids.filter(k => !qq || (k.name + ' ' + k.group + ' ' + k.station).includes(qq));
+    if (!kids.length) return;
+    h += `<h3 class="muted" style="margin:14px 0 6px">${esc(l.name)}</h3>`;
+    kids.forEach(k => { n++; h += `<button class="pick ${k.taken ? 'taken' : ''}" onclick="kidPicked('${esc(k.key)}')"><span><b>${esc(k.name)}</b> <span class="muted">${esc(k.group)}</span><br><span class="muted small">${esc(k.station)}</span></span>${k.taken ? '<span class="pill">רשום</span>' : '<span>‹</span>'}</button>`; });
+  });
+  if (!lines.length) h += `<div class="empty">רשימת ההסעות עוד לא פורסמה. נסו שוב מאוחר יותר.</div>`;
+  else if (!n) h += `<div class="empty">לא נמצא. נסו לחפש רק שם פרטי.</div>`;
+  h += `</div><p class="muted small center" style="margin-top:16px">לא מוצא/ת את עצמך? רק מי שרשום/ה להסעה השבוע מופיע/ה ברשימה. פנה/י למדריך/ה.</p></div>`;
+  $('#app').innerHTML = h;
+  const qi = $('#q'); qi.oninput = () => { const pos = qi.selectionStart; kidPickRender(qi.value); const n2 = $('#q'); n2.focus(); n2.setSelectionRange(pos, pos); };
+}
+function kidPicked(key) {
+  let k = null;
+  K.roster.lines.forEach(l => l.kids.forEach(x => { if (x.key === key) k = x; }));
+  K.pick = k;
+  const prev = K.me && K.me.me ? K.me.me : null;
+  $('#app').innerHTML = kidHeader('הרשמה · שלב 2 מתוך 2') + `<div class="wrap"><div class="card">
+    <div class="muted small">נרשמ/ת בתור</div><div class="big" style="font-size:24px">${esc(k.name)} <span class="muted" style="font-size:18px">${esc(k.group)}</span></div>
+    ${k.taken ? `<div class="banner warn" style="margin-top:10px">השם הזה כבר רשום ממכשיר אחר. אם זה באמת את/ה — הזן/י את אותו מספר טלפון ונחבר אוטומטית, או שהצוות יאשר.</div>` : ''}
+    <label class="f">מספר הטלפון שלך</label><input class="i" id="ph" type="tel" inputmode="tel" placeholder="05X-XXXXXXX" value="${esc(prev ? prev.phone : '')}">
+    <label class="chk"><input type="checkbox" id="cons" ${prev && prev.consent ? 'checked' : ''}><span>אני מסכים/ה שאם אהיה <b>חניך/ה אחראי/ת</b> בהסעה, המספר שלי יוצג לנוסעים בקו שלי כדי שיוכלו להתקשר אליי.</span></label>
+    <p class="muted small">המספר שלך לא מוצג לנהג, ולא לחניכים אחרים — חוץ מהמקרה שלמעלה. רק צוות הכפר רואה אותו.</p>
+    <div class="btns c2"><button class="btn sec" onclick="kidPickRender('')">חזרה</button><button class="btn" onclick="kidSubmit(this)">סיום הרשמה</button></div></div></div>`;
+}
+async function kidSubmit(btn) {
+  const phone = $('#ph').value, consent = $('#cons').checked;
+  await act(btn, async () => {
+    const r = await api('register', { key: K.pick.key, phone, consent, token: LS.get('hs_token') || '' });
+    LS.set('hs_token', r.token);
+    toast(r.status === 'pending' ? 'נשלח לאישור הצוות' : 'נרשמת בהצלחה ✓');
+    await kidLoad();
+  });
+}
+function kidEditDetails() {
+  const m = K.me.me;
+  openModal('עדכון פרטים', `<label class="f">טלפון</label><input class="i" id="eph" type="tel" value="${esc(m.phone)}">
+  <label class="chk"><input type="checkbox" id="econs" ${m.consent ? 'checked' : ''}><span>אם אהיה אחראי/ת — אפשר להציג את המספר שלי לנוסעים בקו</span></label>
+  <button class="btn block" onclick="kidSaveDetails(this)">שמירה</button>`);
+}
+async function kidSaveDetails(btn) {
+  await act(btn, async () => {
+    await api('register', { key: K.me.me.key, phone: $('#eph').value, consent: $('#econs').checked, token: LS.get('hs_token') });
+    closeModal(); toast('נשמר ✓'); await kidLoad();
+  });
+}
+
+/* =====================================================================
+   מסך החניך/ה האחראי/ת
+   ===================================================================== */
+function setRespMode(on) { K.respMode = on; LS.set('hs_resp', on ? '1' : null); pollMs = on ? 15000 : 30000; kidRender(); window.scrollTo(0, 0); }
+function respRender() {
+  const d = K.me, l = d.line, rv = d.respView;
+  const nextIdx = l.state === 'arrived' ? -1 : l.curIdx + 1;
+  let h = `<header class="top"><div style="flex:1"><h1>⭐ אחראי/ת הסעה</h1><div class="sub">${esc(l.name)}</div></div>
+    <button onclick="kidRefresh(this)">⟳</button><button onclick="setRespMode(false)">המסך שלי</button></header><div class="wrap">`;
+  if (d.day.announce) h += `<div class="banner info">📢 ${esc(d.day.announce.text)}</div>`;
+  if (l.msg) h += `<div class="banner warn">📢 מהצוות: ${esc(l.msg.text)}</div>`;
+
+  // שיתוף מיקום
+  const gpsOn = !!K.gps;
+  h += `<div class="card"><div class="spread"><div><b>${gpsOn ? '<span class="live"></span> המיקום משותף' : '📍 שיתוף מיקום כבוי'}</b><div class="muted small">${gpsOn ? 'השאר/י את המסך פתוח. החניכים רואים איפה ההסעה.' : 'החניכים יראו איפה ההסעה רק כשהשיתוף פועל.'}</div></div>
+    <button class="btn sm ${gpsOn ? 'sec' : 'ok'}" onclick="${gpsOn ? 'stopGps()' : 'startGps()'}">${gpsOn ? 'עצירה' : 'הפעלה'}</button></div>
+    ${rv.driverPhone ? `<a class="btn out block" style="margin-top:10px" href="${telLink(rv.driverPhone)}">📞 התקשרות לנהג/ת${l.driver.name ? ' — ' + esc(l.driver.name) : ''}</a>` : ''}</div>`;
+
+  if (l.state === 'arrived') {
+    h += `<div class="card hero"><div class="emoji">🏡</div><h2>הגעתם לכפר ב-${hm(l.arrivedAt)}</h2><p class="muted">תודה רבה על האחריות!</p><button class="btn sec sm" onclick="respOp(this,{op:'unarrive'})">סימנתי בטעות</button></div>`;
+  } else {
+    const st = rv.stations[nextIdx];
+    if (st) {
+      const cnt = st.kids.filter(k => k.s === 'on').length;
+      h += `<div class="card" style="border:2px solid var(--warn)"><div class="spread"><div><div class="muted small">${l.state === 'wait' ? 'תחנה ראשונה' : 'התחנה הנוכחית / הבאה'}</div><div class="big" style="font-size:22px">${esc(st.name)}</div></div>
+        <div class="center"><div class="big" style="font-size:22px">${esc(st.time)}</div><div class="muted small">עכשיו ${hm(Date.now())}</div></div></div>
+        ${st.note ? `<div class="muted small" style="margin-top:6px">📍 ${esc(st.note)}</div>` : ''}
+        <div class="muted small" style="margin:8px 0 2px">עלו ${cnt} מתוך ${st.kids.length}</div>
+        ${st.kids.map(k => respKidRow(k)).join('') || '<div class="muted">אין חניכים בתחנה הזו</div>'}
+        <button class="btn block ${st.kids.every(k => ['on', 'no', 'cancel'].includes(k.s) || k.key === d.me.key) ? 'ok' : 'warn'}" style="margin-top:12px" onclick="respDepart(this,${nextIdx})">🚌 יצאנו מ${esc(st.name)}</button></div>`;
+    } else {
+      h += `<div class="card"><p>עברתם את כל התחנות. כשתגיעו:</p><button class="btn ok block" onclick="respOp(this,{op:'arrive'})">🏡 הגענו לכפר</button></div>`;
+    }
+  }
+  // כל התחנות
+  h += `<div class="card"><h2>כל התחנות</h2>` + rv.stations.map((s, i) => {
+    const on = s.kids.filter(k => k.s === 'on').length;
+    const flags = s.kids.filter(k => k.s === 'late' || k.s === 'here').length;
+    return `<details ${i === nextIdx ? '' : ''}><summary class="spread" style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <span>${i <= l.curIdx ? '✅' : i === nextIdx ? '🟠' : '⚪'} <b>${esc(s.time)}</b> ${esc(s.name)}</span>
+      <span class="row">${flags ? `<span class="pill warn">${flags} דיווחים</span>` : ''}<span class="pill">${on}/${s.kids.length}</span></span></summary>
+      <div style="padding:4px 0 8px">${s.kids.map(k => respKidRow(k)).join('') || '<div class="muted small">אין חניכים</div>'}
+      ${i <= l.curIdx ? '' : `<button class="btn sec sm" style="margin-top:6px" onclick="respDepart(this,${i})">סימון יציאה מתחנה זו</button>`}</div></details>`;
+  }).join('') + `</div>`;
+  if (l.state !== 'arrived' && nextIdx > 0) h += `<button class="btn sec block" onclick="respOp(this,{op:'arrive'})">🏡 הגענו לכפר</button>`;
+  $('#app').innerHTML = h + '</div>';
+}
+function respKidRow(k) {
+  if (K.me && k.key === K.me.me.key) return `<div class="kid"><div class="nm">${esc(k.name)} <small>זה/זו את/ה ⭐</small></div>${stPill(k)}</div>`;
+  const self = k.self && k.s !== k.self ? ` <span class="muted small">(דיווח: ${ST[k.self] ? ST[k.self].t : ''})</span>` : '';
+  return `<div class="kid"><div class="nm">${esc(k.name)} <small>${esc(k.group)}${k.ts && k.s !== 'none' ? ' · ' + hm(k.ts) : ''}</small></div>${stPill(k)}${self}
+    <button class="btn xs ${k.s === 'on' ? 'ok' : 'sec'}" onclick="respKid(this,'${esc(k.key)}','${k.s === 'on' ? 'clear' : 'on'}')">✓</button>
+    <button class="btn xs ${k.s === 'no' ? 'bad' : 'sec'}" onclick="respKid(this,'${esc(k.key)}','${k.s === 'no' ? 'clear' : 'no'}')">✗</button></div>`;
+}
+async function respOp(btn, data) {
+  await act(btn, async () => { await api('resp', Object.assign({ token: LS.get('hs_token') }, data)); await kidLoad(); });
+}
+function respKid(btn, key, val) { return respOp(btn, { op: 'kid', key, val }); }
+function respDepart(btn, idx) {
+  const st = K.me.respView.stations[idx];
+  const missing = st.kids.filter(k => !['on', 'no', 'cancel'].includes(k.s) && k.key !== K.me.me.key);
+  const go = () => respOp(btn, { op: 'depart', station: st.name }).then(() => { closeModal(); if (!K.gps) startGps(); });
+  if (!missing.length) return go();
+  openModal('יש חניכים שלא סומנו', `<p>בתחנה <b>${esc(st.name)}</b> עוד לא סומנו:</p><p><b>${missing.map(k => esc(k.name)).join(', ')}</b></p>
+    <p class="muted small">אם הם לא הגיעו — סמן/י ✗ כדי שהצוות יקבל התראה.</p>
+    <div class="btns"><button class="btn bad" id="mx">לסמן את כולם "לא הגיע" ולצאת</button><button class="btn warn" id="mgo">לצאת בלי לסמן</button><button class="btn sec" onclick="closeModal()">חזרה</button></div>`,
+    b => {
+      $('#mx', b).onclick = async e => { await act(e.target, async () => { for (const k of missing) await api('resp', { token: LS.get('hs_token'), op: 'kid', key: k.key, val: 'no' }); await go(); }); };
+      $('#mgo', b).onclick = go;
+    });
+}
+function startGps() {
+  if (!navigator.geolocation) return toast('המכשיר לא תומך במיקום');
+  if (K.gps) return;
+  K.gps = navigator.geolocation.watchPosition(p => {
+    if (Date.now() - K.lastPos < 25000) return;
+    K.lastPos = Date.now();
+    api('resp', { token: LS.get('hs_token'), op: 'pos', lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }).catch(() => { });
+  }, e => { toast('אין הרשאת מיקום — יש לאשר בדפדפן'); stopGps(); }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 });
+  if ('wakeLock' in navigator) navigator.wakeLock.request('screen').then(w => K.wake = w).catch(() => { });
+  kidRender();
+}
+function stopGps() {
+  if (K.gps != null) navigator.geolocation.clearWatch(K.gps);
+  K.gps = null; K.lastPos = 0;
+  if (K.wake) { K.wake.release().catch(() => { }); K.wake = null; }
+  if (K.me) kidRender();
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && K.gps && 'wakeLock' in navigator && !K.wake) navigator.wakeLock.request('screen').then(w => K.wake = w).catch(() => { }); });
+
+/* =====================================================================
+   ממשק הניהול
+   ===================================================================== */
+const A = { s: LS.get('hs_session'), user: JSON.parse(LS.get('hs_user') || 'null'), tab: 'shift', data: null, open: {}, sub: 'users', cache: {}, filter: '' };
+const isAdmin = () => A.user && A.user.role === 'admin';
+
+function logout(expired) {
+  LS.set('hs_session', null); LS.set('hs_user', null); A.s = null; A.user = null; pollFn = null;
+  if (expired) toast('יש להתחבר מחדש');
+  adminInit();
+}
+function adminInit() {
+  document.title = 'ניהול הסעות';
+  if (!A.s) return adminLogin();
+  adminShell();
+  startPoll(adminLoad, 15000);
+}
+function adminLogin() {
+  $('#app').innerHTML = `<header class="top"><h1>🚌 ניהול הסעות</h1></header><div class="wrap"><div class="card" style="margin-top:20px">
+  <h2>כניסת צוות</h2><label class="f">טלפון</label><input class="i" id="lp" type="tel" inputmode="tel" autocomplete="username">
+  <label class="f">קוד אישי</label><input class="i" id="lc" type="password" inputmode="numeric" autocomplete="current-password">
+  <button class="btn block" style="margin-top:14px" id="lb">כניסה</button></div>
+  <p class="center muted small"><a href="${esc(APP_URL)}">למסך החניכים</a></p></div>`;
+  const go = () => act($('#lb'), async () => {
+    const r = await api('login', { phone: $('#lp').value, pin: $('#lc').value });
+    A.s = r.session; A.user = r.user; LS.set('hs_session', r.session); LS.set('hs_user', JSON.stringify(r.user));
+    adminInit();
+  });
+  $('#lb').onclick = go; $('#lc').onkeydown = e => { if (e.key === 'Enter') go(); };
+}
+const NAV = [['shift', '🚌', 'משמרת'], ['map', '🗺️', 'מפה'], ['kids', '👥', 'חניכים'], ['events', '🔔', 'אירועים'], ['admin', '⚙️', 'ניהול']];
+function adminShell() {
+  const d = A.data;
+  const alertsN = d && d.alerts ? d.alerts.filter(a => a.lvl === 'red').length : 0;
+  const pend = d && d.pending ? d.pending.length : 0;
+  $('#app').innerHTML = `<header class="top"><div style="flex:1"><h1>ניהול הסעות</h1><div class="sub">${esc(A.user.name)} · ${isAdmin() ? 'מנהלת ראשית' : 'מנהל/ת תורן/ית'}${d && d.day ? ' · ' + esc(d.day.tab) : ''}</div></div>
+    <button onclick="adminRefresh(this)">⟳</button><button onclick="if(confirm('להתנתק?'))logout()">יציאה</button></header>
+    <div class="wrap" id="main"></div>
+    <nav class="bottom">${NAV.filter(n => n[0] !== 'admin' || isAdmin()).map(n => `<button class="${A.tab === n[0] ? 'on' : ''}" onclick="adminTab('${n[0]}')"><span class="ic">${n[1]}</span>${n[2]}${n[0] === 'shift' && alertsN ? `<span class="badge">${alertsN}</span>` : ''}${n[0] === 'kids' && pend ? `<span class="badge">${pend}</span>` : ''}</button>`).join('')}</nav>`;
+  adminRenderMain();
+}
+function adminTab(t) { A.tab = t; window.scrollTo(0, 0); adminShell(); if (t === 'admin') adminSub(A.sub); }
+async function adminRefresh(btn) { await act(btn, adminLoad); }
+async function adminLoad() {
+  try { A.data = await api('duty', { session: A.s }); }
+  catch (e) { if (e.code === 'AUTH') return logout(true); throw e; }
+  A.user = A.data.user; LS.set('hs_user', JSON.stringify(A.user));
+  const ae = document.activeElement;
+  if (modalOpen() || (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName))) { refreshBadges(); return; }
+  if (A.tab === 'admin') { refreshBadges(); return; }
+  const y = window.scrollY;
+  adminShell();
+  window.scrollTo(0, y);
+}
+function refreshBadges() { /* נמנע מרינדור בזמן הקלדה */ }
+function adminRenderMain() {
+  const m = $('#main'); if (!m) return;
+  if (!A.data) { m.innerHTML = '<div class="empty"><span class="spin"></span></div>'; return; }
+  ({ shift: renderShift, map: renderMapTab, kids: renderKidsTab, events: renderEvents, admin: renderAdminTab }[A.tab] || renderShift)(m);
+}
+
+/* ---------- טאב משמרת ---------- */
+function lineById(id) { return (A.data.lines || []).find(l => l.id === id); }
+function renderShift(m) {
+  const d = A.data;
+  if (!d.day) {
+    m.innerHTML = `<div class="card hero"><div class="emoji">🌙</div><h2>אין יום הסעות פתוח</h2><p class="muted">פותחים יום לפני ההסעה — המערכת קוראת את גיליון "חזור" מטבלת המדריכים.</p>
+      <button class="btn block" onclick="openDayModal()">פתיחת יום הסעות</button></div>
+      ${d.pending.length ? `<div class="banner info" onclick="adminTab('kids')">${d.pending.length} בקשות הרשמה ממתינות ‹</div>` : ''}`;
+    return;
+  }
+  const L = d.lines;
+  const tot = L.reduce((a, l) => a + l.counts.total, 0), on = L.reduce((a, l) => a + (l.counts.on || 0), 0);
+  const no = L.reduce((a, l) => a + (l.counts.no || 0), 0), late = L.reduce((a, l) => a + (l.counts.late || 0), 0);
+  let h = `<div class="card"><div class="spread"><div><div class="muted small">סה״כ עלו</div><div class="big">${on}<span class="muted" style="font-size:18px"> / ${tot}</span></div></div>
+    <div class="row wrap2" style="justify-content:flex-end">${no ? `<span class="pill bad">${no} לא הגיעו</span>` : ''}${late ? `<span class="pill warn">${late} מאחרים</span>` : ''}<span class="pill"><span class="live"></span>${hm(d.day.readAt)}</span></div></div>
+    <div class="prog"><i style="width:${tot ? Math.round(on / tot * 100) : 0}%"></i></div>
+    <div class="row wrap2" style="margin-top:8px"><button class="btn sm sec" onclick="announceModal()">📢 הודעה לכולם</button><button class="btn sm sec" onclick="closeDayModal()">סגירת יום</button><button class="btn sm sec" onclick="openDayModal()">החלפת גיליון</button></div>
+    ${d.day.announce ? `<div class="banner info" style="margin:10px 0 0">📢 ${esc(d.day.announce.text)}</div>` : ''}
+    ${d.day.warnings && d.day.warnings.length ? `<div class="muted small" style="margin-top:8px">⚠️ ${d.day.warnings.map(esc).join(' · ')}</div>` : ''}</div>`;
+
+  // התראות
+  if (d.alerts.length) {
+    const order = { red: 0, orange: 1, blue: 2 };
+    const al = d.alerts.slice().sort((a, b) => order[a.lvl] - order[b.lvl]);
+    h += `<div class="card"><h2>דורש טיפול (${al.length})</h2>` + al.map(a => `<div class="alert ${a.lvl}"><div class="t">${a.line ? `<b>${esc(a.line)}</b>` : ''}${esc(a.txt)}</div>
+      ${a.phone ? `<a class="btn xs sec" href="${telLink(a.phone)}">📞</a>` : ''}
+      ${a.key && a.lvl !== 'blue' ? `<button class="btn xs sec" onclick="setKid(this,'${a.lineId}','${esc(a.key)}','on')">✓ עלה</button>` : ''}
+      ${a.lineId && !a.key ? `<button class="btn xs sec" onclick="lineModal('${a.lineId}')">טיפול</button>` : ''}
+      ${a.go ? `<button class="btn xs sec" onclick="adminTab('${a.go === 'pending' ? 'kids' : a.go}')">פתיחה</button>` : ''}</div>`).join('') + `</div>`;
+  }
+  // קווים
+  h += L.map(lineCard).join('');
+  m.innerHTML = h;
+}
+function lineCard(l) {
+  const c = l.counts, open = A.open[l.id];
+  const pos = l.pos, posAge = pos ? Date.now() - pos.ts : null;
+  const next = l.state === 'route' && l.stations[l.curIdx + 1];
+  let h = `<div class="card line-card ${l.state}"><div class="spread" onclick="toggleLine('${l.id}')" style="cursor:pointer"><div class="grow"><h2 style="margin:0">${esc(l.name)}</h2>
+    <div class="muted small">${l.state === 'route' ? `יצא מ${esc(l.cur)} ${hm(l.curTs)}${next ? ' ← ' + esc(next.name) + ' ' + esc(next.time) : ''}` : l.state === 'arrived' ? 'הגיע לכפר ' + hm(l.arrivedAt) : 'יציאה ' + esc(l.stations[0] ? l.stations[0].time : '')}</div></div>
+    <div class="center"><span class="pill ${LINE_ST[l.state][1]}">${LINE_ST[l.state][0]}</span><div class="big" style="font-size:20px;margin-top:4px">${c.on || 0}/${c.total}</div></div></div>
+    <div class="prog"><i style="width:${c.total ? Math.round((c.on || 0) / c.total * 100) : 0}%"></i></div>
+    <div class="row wrap2 small">${c.here ? `<span class="pill info">${c.here} בתחנה</span>` : ''}${c.late ? `<span class="pill warn">${c.late} מאחרים</span>` : ''}${c.no ? `<span class="pill bad">${c.no} לא הגיעו</span>` : ''}${c.cancel ? `<span class="pill">${c.cancel} ביטלו</span>` : ''}${c.unreg ? `<span class="pill">${c.unreg} לא רשומים</span>` : ''}
+      ${pos ? `<a class="pill ${posAge < 4 * 60000 ? 'ok' : 'warn'}" style="text-decoration:none" href="https://www.google.com/maps?q=${pos.lat},${pos.lng}" target="_blank" rel="noopener">📍 ${ago(pos.ts)}</a>` : ''}</div>
+    <div class="hr"></div>
+    <div class="kv"><b>נהג/ת</b><span>${l.driver && l.driver.name ? esc(l.driver.name) + (l.driver.phone ? ` · <a href="${telLink(l.driver.phone)}">${fmtPhone(l.driver.phone)}</a>` : '') : '<span class="pill warn">חסר</span>'}</span>
+    <b>אחראי/ת</b><span>${l.respName ? esc(l.respName) + (l.respPhone ? ` · <a href="${telLink(l.respPhone)}">${fmtPhone(l.respPhone)}</a>` : '') + (l.respSeen ? ` <span class="muted small">(נראה/תה ${ago(l.respSeen)})</span>` : ' <span class="muted small">(עוד לא נכנס/ה)</span>') : '<span class="pill warn">חסר</span>'}</span>
+    ${l.backupName ? `<b>מחליף/ה</b><span>${esc(l.backupName)}</span>` : ''}${l.msg ? `<b>הודעה</b><span>${esc(l.msg)}</span>` : ''}</div>
+    <div class="row wrap2" style="margin-top:10px"><button class="btn sm" onclick="lineModal('${l.id}')">⚙️ הגדרת קו</button>
+      <button class="btn sm sec" onclick="sendDriver('${l.id}')" ${l.driver && l.driver.phone ? '' : 'disabled'}>💬 שליחה לנהג</button>
+      <button class="btn sm sec" onclick="sendResp('${l.id}')" ${l.respPhone ? '' : 'disabled'}>💬 לאחראי/ת</button>
+      <button class="btn sm sec" onclick="toggleLine('${l.id}')">${open ? 'הסתרת חניכים ▴' : 'חניכים ▾'}</button></div>`;
+  if (open) {
+    h += `<div class="hr"></div>` + l.stations.map((s, i) => `<div style="margin-bottom:10px"><div class="spread" style="background:var(--grey);border-radius:10px;padding:6px 10px">
+      <b>${i <= l.curIdx ? '✅ ' : ''}${esc(s.time)} · ${esc(s.name)}</b><span class="muted small">${s.kids.filter(k => k.st.s === 'on').length}/${s.kids.length}</span></div>
+      ${s.kids.map(k => adminKidRow(l.id, k)).join('') || '<div class="muted small" style="padding:6px">אין חניכים</div>'}</div>`).join('');
+    h += `<div class="row wrap2"><button class="btn sm sec" onclick="lineStationModal('${l.id}')">תיקון מיקום ההסעה / הגעה</button></div>`;
+  }
+  return h + `</div>`;
+}
+function adminKidRow(lineId, k) {
+  return `<div class="kid"><div class="nm">${esc(k.name)} ${k.isNew ? '<span class="pill info">חדש</span>' : ''}<small>${esc(k.group)}${k.reg ? '' : ' · לא רשום/ה לאפליקציה'}${k.st.by ? ' · ' + esc(k.st.by) : ''}${k.st.ts ? ' · ' + hm(k.st.ts) : ''}</small></div>
+    ${stPill(k.st)}${k.phone ? `<a class="btn xs sec" href="${telLink(k.phone)}">📞</a>` : ''}
+    <button class="btn xs ${k.st.s === 'on' ? 'ok' : 'sec'}" onclick="setKid(this,'${lineId}','${esc(k.key)}','${k.st.s === 'on' ? 'clear' : 'on'}')">✓</button>
+    <button class="btn xs ${k.st.s === 'no' ? 'bad' : 'sec'}" onclick="setKid(this,'${lineId}','${esc(k.key)}','${k.st.s === 'no' ? 'clear' : 'no'}')">✗</button>
+    <button class="btn xs sec" onclick="kidMenu('${lineId}','${esc(k.key)}')">⋯</button></div>`;
+}
+function toggleLine(id) { A.open[id] = !A.open[id]; adminRenderMain(); }
+async function setKid(btn, lineId, key, val) {
+  await act(btn, async () => { await api('setKid', { session: A.s, lineId, key, val }); closeModal(); await adminLoad(); });
+}
+function kidMenu(lineId, key) {
+  const l = lineById(lineId); let k = null;
+  l.stations.forEach(s => s.kids.forEach(x => { if (x.key === key) k = x; }));
+  openModal(esc(k.raw), `<div class="kv"><b>קו</b><span>${esc(l.name)}</span><b>סטטוס</b><span>${stPill(k.st)}</span><b>טלפון</b><span>${k.phone ? `<a href="${telLink(k.phone)}">${fmtPhone(k.phone)}</a>` : 'לא רשום/ה'}</span></div>
+  <div class="btns c2" style="margin-top:14px"><button class="btn ok" onclick="setKid(this,'${lineId}','${esc(key)}','on')">✓ עלה/תה</button><button class="btn bad" onclick="setKid(this,'${lineId}','${esc(key)}','no')">✗ לא הגיע/ה</button>
+  <button class="btn sec" onclick="setKid(this,'${lineId}','${esc(key)}','cancel')">לא נוסע/ת היום</button><button class="btn sec" onclick="setKid(this,'${lineId}','${esc(key)}','clear')">איפוס סטטוס</button></div>
+  ${k.phone ? `<a class="btn out block" style="margin-top:8px" href="${waLink(k.phone, 'היי ' + k.name + ', כאן ' + A.user.name + ' מ' + VILLAGE + '. ')}" target="_blank">💬 וואטסאפ לחניך/ה</a>` : ''}`);
+}
+
+/* ---------- הגדרת קו ---------- */
+function lineModal(id) {
+  const l = lineById(id), dr = l.driver || {};
+  const kids = []; l.stations.forEach(s => s.kids.forEach(k => kids.push(Object.assign({ station: s.name }, k))));
+  kids.sort((a, b) => (b.consent - a.consent) || (b.reg - a.reg));
+  const opt = sel => `<option value="">— ללא —</option>` + kids.map(k => `<option value="${esc(k.key)}" ${k.key === sel ? 'selected' : ''} ${k.reg ? '' : 'disabled'}>${esc(k.raw)} · ${esc(k.station)}${!k.reg ? ' (לא רשום/ה)' : k.consent ? ' ✓' : ' (בלי הצגת מספר)'}</option>`).join('');
+  openModal('⚙️ ' + esc(l.name), `<div class="card"><h2>פרטי הנהג/ת (מהסדרן)</h2>
+    <label class="f">שם</label><input class="i" id="dn" value="${esc(dr.name || '')}">
+    <label class="f">טלפון</label><input class="i" id="dp" type="tel" value="${esc(dr.phone || '')}">
+    <div class="btns c2"><div><label class="f">סוג רכב</label><input class="i" id="dt" placeholder="אוטובוס / מיניבוס" value="${esc(dr.type || '')}"></div><div><label class="f">צבע</label><input class="i" id="dc" value="${esc(dr.color || '')}"></div></div>
+    <label class="f">מספר רכב</label><input class="i" id="dl" dir="ltr" value="${esc(dr.plate || '')}">
+    <p class="muted small">החניכים רואים רק שם, סוג, צבע ומספר רכב. הטלפון של הנהג/ת מוצג רק לאחראי/ת ולצוות.</p></div>
+    <div class="card"><h2>חניך/ה אחראי/ת</h2>
+    <label class="f">אחראי/ת</label><select class="i" id="rs">${opt(l.resp)}</select>
+    <label class="f">מחליף/ה (אם האחראי/ת לא זמין/ה)</label><select class="i" id="rb">${opt(l.backup)}</select>
+    <p class="muted small">✓ = הסכים/ה שהמספר יוצג לנוסעים. אפשר לבחור רק חניכים שנרשמו לאפליקציה. אפשר להחליף בכל רגע — זה מתעדכן אצל כולם מיד.</p></div>
+    <div class="card"><h2>הודעה לנוסעי הקו</h2><input class="i" id="lm" placeholder="למשל: ההסעה מתעכבת ב-15 דק׳" value="${esc(l.msg || '')}"><p class="muted small">מופיעה למעלה אצל כל החניכים בקו. להשאיר ריק כדי להסיר.</p></div>
+    <button class="btn block" id="lsave">שמירה</button>
+    <div class="btns c2" style="margin-top:8px"><button class="btn sec" id="lsd">שמירה ושליחה לנהג</button><button class="btn sec" id="lsr">שמירה ושליחה לאחראי/ת</button></div>`,
+    b => {
+      const save = async (btn, then) => act(btn, async () => {
+        await api('setLine', { session: A.s, lineId: id, driver: { name: $('#dn').value, phone: $('#dp').value, type: $('#dt').value, color: $('#dc').value, plate: $('#dl').value }, resp: $('#rs').value, backup: $('#rb').value, msg: $('#lm').value });
+        closeModal(); toast('נשמר ✓'); await adminLoad(); if (then) then();
+      });
+      $('#lsave', b).onclick = e => save(e.target);
+      $('#lsd', b).onclick = e => save(e.target, () => sendDriver(id));
+      $('#lsr', b).onclick = e => save(e.target, () => sendResp(id));
+    });
+}
+function driverText(l) {
+  let t = `שלום ${l.driver.name || ''}, כאן ${A.user.name} מ${VILLAGE} 🚌\nהסעת חזור לכפר — *${l.name}*\n\n`;
+  let n = 0;
+  l.stations.forEach(s => { const ks = s.kids.filter(k => k.st.s !== 'cancel'); n += ks.length; t += `*${s.time} — ${s.name}* (${ks.length})\n${ks.map(k => '• ' + k.name).join('\n') || '—'}\n\n`; });
+  t += `סה״כ ${n} חניכים.\n`;
+  if (l.respName) { let rs = ''; l.stations.forEach(s => s.kids.forEach(k => { if (k.key === l.resp) rs = s.name; })); t += `החניך/ה האחראי/ת מטעמנו: *${l.respName}* (עולה ב${rs}). הוא/היא מעדכן/ת אותך על מאחרים.\n`; }
+  t += `\nלכל שאלה: ${A.user.name} ${fmtPhone(A.user.phone || '')}\nתודה ונסיעה בטוחה!`;
+  return t;
+}
+function sendDriver(id) { const l = lineById(id); if (!l.driver || !l.driver.phone) return toast('חסר טלפון של הנהג/ת'); window.open(waLink(l.driver.phone, driverText(l)), '_blank'); }
+function sendResp(id) {
+  const l = lineById(id); if (!l.respPhone) return toast('לאחראי/ת אין טלפון רשום');
+  const t = `היי ${l.respName.split(/\s*[-–]\s*/)[0]} 👋 את/ה החניך/ה האחראי/ת היום בהסעת *${l.name}*. תודה!\n\n1. פתח/י את אפליקציית ההסעות: ${APP_URL}\n2. לחץ/י על "מסך האחראי/ת" והפעל/י שיתוף מיקום.\n3. בכל תחנה סמן/י מי עלה ✓ ומי לא הגיע ✗, ואז "יצאנו".\n${l.driver && l.driver.name ? `\nהנהג/ת: ${l.driver.name}${l.driver.phone ? ' ' + fmtPhone(l.driver.phone) : ''}` : ''}\nבכל בעיה: ${A.user.name}`;
+  window.open(waLink(l.respPhone, t), '_blank');
+}
+function lineStationModal(id) {
+  const l = lineById(id);
+  openModal('מיקום ההסעה — ' + esc(l.name), `<p class="muted">לשימוש אם האחראי/ת לא מעדכן/ת. בחרו מאיזו תחנה ההסעה כבר יצאה:</p>
+    <select class="i" id="ls"><option value="">טרם יצאה</option>${l.stations.map(s => `<option ${s.name === l.cur ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
+    <button class="btn block" style="margin-top:10px" id="lsok">עדכון</button>
+    <div class="hr"></div><button class="btn ${l.state === 'arrived' ? 'sec' : 'ok'} block" id="larr">${l.state === 'arrived' ? 'ביטול "הגיע לכפר"' : '🏡 סימון: ההסעה הגיעה לכפר'}</button>`, b => {
+    $('#lsok', b).onclick = e => act(e.target, async () => { await api('setLinePos', { session: A.s, lineId: id, station: $('#ls').value }); closeModal(); await adminLoad(); });
+    $('#larr', b).onclick = e => act(e.target, async () => { await api('setLinePos', { session: A.s, lineId: id, arrived: l.state !== 'arrived' }); closeModal(); await adminLoad(); });
+  });
+}
+function announceModal() {
+  const cur = A.data.day.announce;
+  openModal('📢 הודעה לכל החניכים', `<textarea class="i" id="an" rows="3" placeholder="למשל: בגלל עומסים כל ההסעות מתעכבות בכ-10 דק׳">${esc(cur ? cur.text : '')}</textarea>
+  <p class="muted small">ההודעה מופיעה למעלה אצל כל החניכים. להודעה לקו אחד — דרך "הגדרת קו".</p>
+  <div class="btns c2"><button class="btn" id="ans">פרסום</button><button class="btn sec" id="anc">הסרת ההודעה</button></div>`, b => {
+    $('#ans', b).onclick = e => act(e.target, async () => { await api('announce', { session: A.s, text: $('#an').value }); closeModal(); toast('פורסם ✓'); await adminLoad(); });
+    $('#anc', b).onclick = e => act(e.target, async () => { await api('announce', { session: A.s, text: '' }); closeModal(); await adminLoad(); });
+  });
+}
+
+/* ---------- פתיחה וסגירה של יום ---------- */
+async function openDayModal() {
+  openModal('פתיחת יום הסעות', '<div class="empty"><span class="spin"></span></div>');
+  await act(null, async () => {
+    const r = await api('tabs', { session: A.s });
+    if (!r.tabs.length) { $('#mbody').innerHTML = `<div class="banner bad">לא נמצא בקובץ ההסעות גיליון שמתחיל ב"חזור".</div>`; return; }
+    $('#mbody').innerHTML = `<label class="f">גיליון</label><select class="i" id="tb">${r.tabs.map(t => `<option ${t === r.def ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select><div id="pv" style="margin-top:12px"></div>`;
+    const pv = async () => {
+      $('#pv').innerHTML = '<div class="empty"><span class="spin"></span> קורא את הטבלה...</div>';
+      const p = await api('preview', { session: A.s, tab: $('#tb').value });
+      $('#pv').innerHTML = `<div class="card"><div class="spread"><b>נמצאו ${p.lines.length} קווים, ${p.total} חניכים</b>${p.unregistered ? `<span class="pill warn">${p.unregistered} לא רשומים</span>` : ''}</div>
+        ${p.lines.map(l => `<div style="margin-top:10px"><b>${esc(l.name)}</b> <span class="muted">(${l.kids})</span><div class="muted small">${l.stations.map(s => esc(s.time) + ' ' + esc(s.name) + ' (' + s.kids + ')').join(' · ')}</div></div>`).join('')}
+        ${p.warnings.length ? `<div class="banner warn" style="margin-top:10px">${p.warnings.map(esc).join('<br>')}</div>` : ''}</div>
+        <p class="muted small">בדקו שהקווים והתחנות נקראו נכון. חניכים שיתווספו לטבלה אחר כך יופיעו אוטומטית.</p>
+        ${A.data.day ? `<div class="banner warn">כבר פתוח יום (${esc(A.data.day.tab)}). פתיחה מחדש תשמור אותו להיסטוריה ותאפס את כל הסטטוסים.</div>` : ''}
+        <button class="btn block ok" id="od">פתיחת היום</button>`;
+      $('#od').onclick = e => act(e.target, async () => { await api('openDay', { session: A.s, tab: $('#tb').value, force: !!A.data.day }); closeModal(); toast('היום נפתח ✓'); A.tab = 'shift'; await adminLoad(); });
+    };
+    $('#tb').onchange = () => act(null, pv);
+    await pv();
+  });
+}
+function closeDayModal() {
+  const L = A.data.lines;
+  const notArr = L.filter(l => l.state !== 'arrived').map(l => l.name);
+  openModal('סגירת יום הסעות', `${notArr.length ? `<div class="banner warn">עוד לא סומנו כמי שהגיעו לכפר: ${notArr.map(esc).join(', ')}</div>` : ''}
+    <p>הסגירה שומרת את כל הסטטוסים להיסטוריה ומנקה את המסך לשבוע הבא. אחרי הסגירה תקבלו סיכום לשליחה בוואטסאפ.</p>
+    <button class="btn bad block" id="cd">סגירת היום</button>`, b => {
+    $('#cd', b).onclick = e => act(e.target, async () => {
+      const r = await api('closeDay', { session: A.s });
+      $('#mbody').innerHTML = `<div class="banner ok">היום נסגר ✓</div><textarea class="i" rows="12" id="sumt">${esc(r.text)}</textarea>
+        <div class="btns c2" style="margin-top:8px"><a class="btn" href="https://wa.me/?text=${encodeURIComponent(r.text)}" target="_blank">💬 שליחה בוואטסאפ</a><button class="btn sec" onclick="navigator.clipboard.writeText($('#sumt').value).then(()=>toast('הועתק'))">העתקה</button></div>`;
+      await adminLoad();
+    });
+  });
+}
+
+/* ---------- טאב מפה ---------- */
+function renderMapTab(m) {
+  const d = A.data;
+  if (!d.day) { m.innerHTML = '<div class="empty">אין יום פתוח</div>'; return; }
+  const pts = d.lines.filter(l => l.pos).map(l => ({ lat: l.pos.lat, lng: l.pos.lng, label: l.name + ' · ' + ago(l.pos.ts), fresh: Date.now() - l.pos.ts < 4 * 60000 }));
+  m.innerHTML = `<div class="card" style="padding:8px"><div id="amap" class="map tall"></div></div>
+    ${d.lines.map(l => `<div class="spread small" style="padding:4px 6px"><span>${esc(l.name)}</span><span class="muted">${l.pos ? `<a href="https://www.google.com/maps?q=${l.pos.lat},${l.pos.lng}" target="_blank" rel="noopener">📍 ${ago(l.pos.ts)}</a>` : 'אין מיקום'}</span></div>`).join('')}
+    ${pts.length ? '' : '<p class="muted center">המיקום מגיע מהטלפון של החניך/ה האחראי/ת כשהשיתוף פועל.</p>'}`;
+  const draw = () => drawMap('amap', pts);
+  if (window.L) draw(); else window.addEventListener('load', draw, { once: true });
+}
+
+/* ---------- טאב חניכים ---------- */
+function renderKidsTab(m) {
+  const d = A.data;
+  let h = '';
+  h += `<div class="card"><h2>בקשות הרשמה ממתינות (${d.pending.length})</h2>` + (d.pending.length ? d.pending.map(p => `<div class="kid"><div class="nm">${esc(p.name)} · ${esc(p.group)}<small>טלפון בבקשה: ${fmtPhone(p.phone)}${p.curPhone ? ' · רשום כרגע עם: ' + fmtPhone(p.curPhone) : ''}</small></div>
+      <a class="btn xs sec" href="${telLink(p.phone)}">📞</a><button class="btn xs ok" onclick="approve(this,'${p.token}')">אישור</button><button class="btn xs sec" onclick="reject(this,'${p.token}')">דחייה</button></div>`).join('') + `<p class="muted small">אישור מחליף את המכשיר הקודם של החניך/ה. כדאי לוודא בטלפון שזה באמת הוא/היא.</p>` : '<div class="muted">אין בקשות</div>') + `</div>`;
+  if (d.day) {
+    const all = []; d.lines.forEach(l => l.stations.forEach(s => s.kids.forEach(k => all.push(Object.assign({ line: l.name, lineId: l.id, station: s.name }, k)))));
+    const unreg = all.filter(k => !k.reg);
+    const q = A.filter;
+    const found = q ? all.filter(k => (k.raw + ' ' + k.station + ' ' + k.line).includes(q)) : [];
+    h += `<div class="card"><h2>חיפוש חניך/ה בהסעות היום</h2><input class="i" id="kq" placeholder="🔍 שם, קבוצה או תחנה" value="${esc(q)}">
+      ${found.map(k => `<div class="kid"><div class="nm">${esc(k.raw)}<small>${esc(k.line)} · ${esc(k.station)}</small></div>${stPill(k.st)}<button class="btn xs sec" onclick="kidMenu('${k.lineId}','${esc(k.key)}')">⋯</button></div>`).join('')}
+      ${q && !found.length ? '<div class="muted small">לא נמצא</div>' : ''}</div>`;
+    h += `<div class="card"><h2>לא רשומים לאפליקציה (${unreg.length})</h2><p class="muted small">מי שלא רשום/ה לא יכול/ה לדווח ולראות סטטוס. כדאי שהמדריכים ישלחו להם את הקישור.</p>
+      <button class="btn sm sec" onclick="navigator.clipboard.writeText('${esc(APP_URL)}').then(()=>toast('הקישור הועתק'))">העתקת קישור ההרשמה</button>
+      ${unreg.map(k => `<div class="small" style="padding:4px 0">${esc(k.raw)} <span class="muted">· ${esc(k.line)}</span></div>`).join('')}</div>`;
+  }
+  m.innerHTML = h;
+  const kq = $('#kq');
+  if (kq) { kq.oninput = () => { A.filter = kq.value; const p = kq.selectionStart; renderKidsTab(m); const n = $('#kq'); n.focus(); n.setSelectionRange(p, p); }; }
+}
+async function approve(btn, token) { await act(btn, async () => { await api('approve', { session: A.s, token }); toast('אושר ✓'); await adminLoad(); }); }
+async function reject(btn, token) { if (!confirm('לדחות את הבקשה?')) return; await act(btn, async () => { await api('reject', { session: A.s, token }); await adminLoad(); }); }
+
+/* ---------- טאב אירועים ---------- */
+const EVT = { here: '📍 הגיע/ה לתחנה', late: '⏱ מאחר/ת', cancel: '🚫 לא נוסע/ת', noshow: '✗ לא הגיע/ה', depart: '🚌 יצאה מתחנה', arrive: '🏡 הגיעה לכפר', pending: '👤 בקשת הרשמה' };
+function renderEvents(m) {
+  const ev = A.data.events || [];
+  m.innerHTML = `<div class="card"><h2>אירועים אחרונים</h2>${ev.length ? `<ul class="list">${ev.map(e => `<li class="spread"><div><b>${EVT[e.t] || e.t}</b> ${esc(e.name || '')}${e.t === 'late' ? ' ' + e.mins + ' דק׳' : ''}<div class="muted small">${esc(e.line || '')}${e.st ? ' · ' + esc(e.st) : ''}</div></div><span class="muted small">${hm(e.ts)}</span></li>`).join('')}</ul>` : '<div class="muted">עוד אין אירועים</div>'}</div>`;
+}
+
+/* ---------- טאב ניהול (מנהלת ראשית) ---------- */
+const SUBS = [['users', 'צוות'], ['stations', 'תחנות'], ['students', 'חניכים רשומים'], ['history', 'היסטוריה'], ['log', 'יומן פעולות'], ['settings', 'הגדרות']];
+function renderAdminTab(m) {
+  if (!isAdmin()) { m.innerHTML = '<div class="empty">אין הרשאה</div>'; return; }
+  m.innerHTML = `<div class="tabs">${SUBS.map(s => `<button class="${A.sub === s[0] ? 'on' : ''}" onclick="adminSub('${s[0]}')">${s[1]}</button>`).join('')}</div><div id="sub"><div class="empty"><span class="spin"></span></div></div>`;
+}
+async function adminSub(s) {
+  A.sub = s; renderAdminTab($('#main'));
+  await act(null, async () => {
+    const r = await api(s, { session: A.s });
+    A.cache[s] = r;
+    ({ users: subUsers, stations: subStations, students: subStudents, history: subHistory, log: subLog, settings: subSettings })[s]($('#sub'), r);
+  });
+}
+function subUsers(el, r) {
+  el.innerHTML = `<div class="card"><div class="spread"><h2>צוות ומנהלים תורנים</h2><button class="btn sm" onclick="userModal()">+ הוספה</button></div>
+    ${r.users.map(u => `<div class="kid"><div class="nm">${esc(u.name)} ${u.role === 'admin' ? '<span class="pill dark">ראשי</span>' : '<span class="pill">תורן/ית</span>'} ${u.active ? '' : '<span class="pill bad">מושבת</span>'}<small>${fmtPhone(u.phone)}</small></div>
+    <button class="btn xs sec" onclick="userModal('${u.id}')">עריכה</button></div>`).join('')}
+    <p class="muted small">מנהל/ת תורן/ית רואה את מסך המשמרת, המפה, החניכים והאירועים — בלי טאב הניהול. נכנסים עם טלפון + קוד אישי.</p></div>`;
+}
+function userModal(id) {
+  const u = id ? A.cache.users.users.find(x => x.id === id) : { name: '', phone: '', role: 'duty', active: true };
+  openModal(id ? 'עריכת משתמש' : 'משתמש חדש', `<label class="f">שם</label><input class="i" id="un" value="${esc(u.name)}">
+    <label class="f">טלפון (משמש לכניסה)</label><input class="i" id="up" type="tel" value="${esc(u.phone)}">
+    <label class="f">הרשאה</label><select class="i" id="ur"><option value="duty" ${u.role !== 'admin' ? 'selected' : ''}>מנהל/ת תורן/ית</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>מנהל/ת ראשי/ת (הכל)</option></select>
+    <label class="f">${id ? 'קוד חדש (להשאיר ריק כדי לא לשנות)' : 'קוד כניסה (4-8 ספרות)'}</label><input class="i" id="uc" inputmode="numeric" placeholder="${id ? '••••' : ''}">
+    ${id ? `<label class="chk"><input type="checkbox" id="ua" ${u.active ? 'checked' : ''}><span>פעיל/ה</span></label>` : ''}
+    <button class="btn block" style="margin-top:12px" id="us">שמירה</button>
+    ${id ? `<button class="btn sec block" style="margin-top:8px" id="ud">מחיקה</button>` : ''}
+    <p class="muted small">אחרי השמירה — שלחו לו/ה את הקישור <b>${esc(APP_URL)}#admin</b> ואת הקוד.</p>`, b => {
+    $('#us', b).onclick = e => act(e.target, async () => {
+      await api('saveUser', { session: A.s, id: id || '', name: $('#un').value, phone: $('#up').value, role: $('#ur').value, pin: $('#uc').value, active: id ? $('#ua').checked : true });
+      closeModal(); toast('נשמר ✓'); adminSub('users');
+    });
+    if (id) $('#ud', b).onclick = e => { if (confirm('למחוק את ' + u.name + '?')) act(e.target, async () => { await api('delUser', { session: A.s, id }); closeModal(); adminSub('users'); }); };
+  });
+}
+function subStations(el, r) {
+  el.innerHTML = `<div class="card"><h2>תחנות — איפה בדיוק מחכים</h2><p class="muted small">ההסבר והקישור למפה מופיעים לחניכים בתחנה שלהם. נשמר לפי שם התחנה, כך שזה נשאר משבוע לשבוע.</p>
+    ${r.stations.map((s, i) => `<div class="kid"><div class="nm">${esc(s.name)}<small>${esc(s.line)}${s.note ? ' · ' + esc(s.note) : ' · <span style="color:var(--warn)">אין הסבר</span>'}</small></div><button class="btn xs sec" onclick="stationModal(${i})">עריכה</button></div>`).join('')}</div>`;
+}
+function stationModal(i) {
+  const s = A.cache.stations.stations[i];
+  openModal(esc(s.name), `<label class="f">איפה בדיוק לחכות</label><textarea class="i" id="sn" rows="3" placeholder="למשל: בתחנת האוטובוס מול הכניסה הראשית לקניון, ליד הקיוסק">${esc(s.note)}</textarea>
+    <label class="f">קישור למפה (Google Maps / Waze)</label><input class="i" id="sm" dir="ltr" value="${esc(s.mapUrl)}" placeholder="https://maps.app.goo.gl/...">
+    <p class="muted small">טיפ: בגוגל מפות לוחצים לחיצה ארוכה על הנקודה המדויקת ← שיתוף ← העתקת קישור.</p>
+    <button class="btn block" id="ss">שמירה</button>`, b => {
+    $('#ss', b).onclick = e => act(e.target, async () => { await api('saveStation', { session: A.s, name: s.name, note: $('#sn').value, mapUrl: $('#sm').value }); closeModal(); toast('נשמר ✓'); adminSub('stations'); });
+  });
+}
+function subStudents(el, r) {
+  const q = A.sq || '';
+  const list = r.students.filter(s => !q || (s.name + ' ' + s.group + ' ' + s.phone).includes(q));
+  el.innerHTML = `<div class="card"><h2>חניכים רשומים (${r.students.filter(s => s.status === 'active').length})</h2><input class="i" id="sq" placeholder="🔍 חיפוש" value="${esc(q)}">
+    ${list.map(s => `<div class="kid"><div class="nm">${esc(s.name)} · ${esc(s.group)} ${s.status === 'pending' ? '<span class="pill warn">ממתין</span>' : ''}<small>${fmtPhone(s.phone)} · ${s.consent ? 'הסכים/ה להצגת מספר' : 'בלי הצגת מספר'}</small></div><button class="btn xs sec" onclick="studentModal('${s.token}')">עריכה</button></div>`).join('')}</div>`;
+  const sq = $('#sq'); sq.oninput = () => { A.sq = sq.value; const p = sq.selectionStart; subStudents(el, r); const n = $('#sq'); n.focus(); n.setSelectionRange(p, p); };
+}
+function studentModal(token) {
+  const s = A.cache.students.students.find(x => x.token === token);
+  openModal(esc(s.name + ' · ' + s.group), `<label class="f">טלפון</label><input class="i" id="stp" type="tel" value="${esc(s.phone)}">
+    <label class="chk"><input type="checkbox" id="stc" ${s.consent ? 'checked' : ''}><span>הסכים/ה להצגת המספר כשהוא/היא אחראי/ת</span></label>
+    <button class="btn block" id="sts">שמירה</button>
+    <div class="btns c2" style="margin-top:8px"><button class="btn sec" id="str">ניתוק מכשיר</button><button class="btn sec" id="std">מחיקה</button></div>
+    <p class="muted small">ניתוק מכשיר: החניך/ה יצטרך/תצטרך להירשם מחדש (למשל אחרי החלפת טלפון). מחיקה: מוחקת את הרישום לגמרי.</p>`, b => {
+    $('#sts', b).onclick = e => act(e.target, async () => { await api('saveStudent', { session: A.s, token, phone: $('#stp').value, consent: $('#stc').checked }); closeModal(); toast('נשמר ✓'); adminSub('students'); });
+    $('#str', b).onclick = e => { if (confirm('לנתק את המכשיר?')) act(e.target, async () => { await api('resetStudent', { session: A.s, token }); closeModal(); adminSub('students'); }); };
+    $('#std', b).onclick = e => { if (confirm('למחוק את הרישום?')) act(e.target, async () => { await api('delStudent', { session: A.s, token }); closeModal(); adminSub('students'); }); };
+  });
+}
+function subHistory(el, r) {
+  el.innerHTML = `<div class="card"><h2>ימי הסעות</h2>${r.days.length ? `<table class="t"><tr><th>תאריך</th><th>עלו</th><th>לא הגיעו</th><th>ביטלו</th><th>איחורים</th></tr>${r.days.map(d => `<tr><td>${esc(d.date)}</td><td>${d.on || 0}/${d.total}</td><td>${d.no || 0}</td><td>${d.cancel || 0}</td><td>${d.late || 0}</td></tr>`).join('')}</table>` : '<div class="muted">עוד אין היסטוריה. היא נשמרת כשסוגרים יום.</div>'}</div>
+    <div class="card"><h2>חניכים — לא הגיעו / איחרו</h2>${r.kids.filter(k => k.no || k.late).slice(0, 60).map(k => `<div class="spread small" style="padding:5px 0;border-bottom:1px solid var(--line)"><span>${esc(k.name)} · ${esc(k.group)}</span><span>${k.no ? `<span class="pill bad">${k.no} לא הגיע/ה</span>` : ''} ${k.late ? `<span class="pill warn">${k.late} איחורים</span>` : ''} <span class="muted">מתוך ${k.trips}</span></span></div>`).join('') || '<div class="muted">אין</div>'}</div>
+    <div class="card"><h2>פירוט "לא הגיעו"</h2>${r.noShows.slice(0, 80).map(n => `<div class="small" style="padding:3px 0">${esc(n.date)} · <b>${esc(n.name)}</b> ${esc(n.group)} · ${esc(n.line)} / ${esc(n.station)}</div>`).join('') || '<div class="muted">אין</div>'}</div>`;
+}
+const ACTS = { login: 'כניסה', openDay: 'פתיחת יום', closeDay: 'סגירת יום', replaceDay: 'החלפת גיליון', setLine: 'הגדרת קו', setLineStation: 'תיקון מיקום הסעה', announce: 'הודעה', approve: 'אישור הרשמה', reject: 'דחיית הרשמה', saveUser: 'שמירת משתמש', delUser: 'מחיקת משתמש', saveStudent: 'עריכת חניך', delStudent: 'מחיקת חניך', resetStudent: 'ניתוק מכשיר', saveStation: 'עריכת תחנה', saveSettings: 'הגדרות' };
+function subLog(el, r) {
+  el.innerHTML = `<div class="card"><h2>יומן פעולות</h2><ul class="list">${r.log.map(l => `<li><div class="spread"><b>${esc(l.user)}</b><span class="muted small">${new Date(l.ts).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div><div class="small">${ACTS[l.action] || esc(l.action)} <span class="muted">${esc(String(l.details).slice(0, 120))}</span></div></li>`).join('')}</ul></div>`;
+}
+function subSettings(el, r) {
+  const s = r.settings;
+  el.innerHTML = `<div class="card"><h2>הגדרות</h2>
+    <label class="f">קובץ ההסעות של המדריכים (קישור או מזהה)</label><input class="i" id="sid" dir="ltr" value="${esc(s.SOURCE_ID)}">
+    <div class="small" style="margin-top:4px">${s.sourceName ? '✅ מחובר: ' + esc(s.sourceName) : '<span style="color:var(--bad)">❌ ' + esc(s.sourceError) + '</span>'}</div>
+    <label class="f">הגיליון מתחיל במילה</label><input class="i" id="stp2" value="${esc(s.TAB_PREFIX)}">
+    <button class="btn block" style="margin-top:12px" id="sset">שמירה</button>
+    <div class="hr"></div><a href="${esc(s.dataUrl)}" target="_blank">פתיחת קובץ הנתונים של המערכת</a>
+    <p class="muted small">קישורים: מסך החניכים — ${esc(APP_URL)} · ניהול — ${esc(APP_URL)}#admin</p></div>`;
+  $('#sset').onclick = e => act(e.target, async () => { await api('saveSettings', { session: A.s, SOURCE_ID: $('#sid').value, TAB_PREFIX: $('#stp2').value }); toast('נשמר ✓'); adminSub('settings'); });
+}
+
+/* =====================================================================
+   הפעלה
+   ===================================================================== */
+function boot() { closeModal(); pollFn = null; if (location.hash.startsWith('#admin')) adminInit(); else kidInit(); }
+window.addEventListener('hashchange', boot);
+boot();
+</script>
+</body>
+</html>
