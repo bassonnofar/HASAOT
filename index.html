@@ -148,6 +148,7 @@ const hm = ms => ms ? new Date(ms).toLocaleTimeString('he-IL', { hour: '2-digit'
 const ago = ms => { if (!ms) return ''; const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? t('agoNow') : m < 60 ? t('agoMin', m) : t('agoHr', Math.floor(m / 60)); };
 const telLink = p => 'tel:' + String(p || '').replace(/\D/g, '');
 const waLink = (p, text) => { let d = String(p || '').replace(/\D/g, ''); if (d.startsWith('0')) d = '972' + d.slice(1); return `https://wa.me/${d}?text=${encodeURIComponent(text)}`; };
+const fmtDate = s => { const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return s || ''; const d = new Date(+m[1], +m[2] - 1, +m[3]); return ['יום א׳', 'יום ב׳', 'יום ג׳', 'יום ד׳', 'יום ה׳', 'יום ו׳', 'שבת'][d.getDay()] + ' ' + (+m[3]) + '.' + (+m[2]); };
 const fmtPhone = p => { const d = String(p || '').replace(/\D/g, ''); return d.length === 10 ? d.slice(0, 3) + '-' + d.slice(3) : d; };
 function toast(msg, ms = 2600) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), ms); }
 
@@ -669,7 +670,7 @@ function adminShell() {
   const d = A.data;
   const alertsN = d && d.alerts ? d.alerts.filter(a => a.lvl === 'red').length : 0;
   const pend = d && d.pending ? d.pending.length : 0;
-  $('#app').innerHTML = `<header class="top"><div style="flex:1"><h1>ניהול הסעות</h1><div class="sub">${esc(A.user.name)} · ${ROLE[A.user.role] || ''}${d && d.day ? ' · ' + esc(d.day.tab) : ''}</div></div>
+  $('#app').innerHTML = `<header class="top"><div style="flex:1"><h1>ניהול הסעות</h1><div class="sub">${esc(A.user.name)} · ${ROLE[A.user.role] || ''}${d && d.day ? ' · ' + esc(d.day.tab) + (d.day.date ? ' · 📅 ' + fmtDate(d.day.date) : '') : ''}</div></div>
     ${installHdrBtn()}<button onclick="adminRefresh(this)">⟳</button><button onclick="if(confirm('להתנתק?'))logout()">יציאה</button></header>
     <div class="wrap" id="main"></div>
     <nav class="bottom">${NAV.filter(n => n[0] !== 'admin' || isAdmin()).map(n => `<button class="${A.tab === n[0] ? 'on' : ''}" onclick="adminTab('${n[0]}')"><span class="ic">${n[1]}</span>${n[2]}${n[0] === 'shift' && alertsN ? `<span class="badge">${alertsN}</span>` : ''}${n[0] === 'kids' && pend ? `<span class="badge">${pend}</span>` : ''}</button>`).join('')}</nav>`;
@@ -712,6 +713,7 @@ function renderShift(m) {
     <div class="row wrap2" style="justify-content:flex-end">${no ? `<span class="pill bad">${no} לא הגיעו</span>` : ''}${late ? `<span class="pill warn">${late} מאחרים</span>` : ''}<span class="pill"><span class="live"></span>${hm(d.day.readAt)}</span></div></div>
     <div class="prog"><i style="width:${tot ? Math.round(on / tot * 100) : 0}%"></i></div>
     ${canEdit() ? `<div class="row wrap2" style="margin-top:8px"><button class="btn sm sec" onclick="announceModal()">📢 הודעה לכולם</button><button class="btn sm sec" onclick="closeDayModal()">סגירת יום</button><button class="btn sm sec" onclick="openDayModal()">החלפת גיליון</button></div>` : `<div class="muted small" style="margin-top:8px">👁 צפייה בלבד${A.user.groups ? ' · הקבוצות שלך: ' + esc(A.user.groups.split(',').join(', ')) : ''}</div>`}
+    <div class="spread small" style="margin-top:8px"><span>📅 ההסעה: <b>${fmtDate(d.day.date)}</b></span>${canEdit() ? `<button class="btn xs sec" onclick="dateModal()">שינוי תאריך</button>` : ''}</div>
     ${d.day.announce ? `<div class="banner info" style="margin:10px 0 0">📢 ${esc(d.day.announce.text)}</div>` : ''}
     ${d.day.warnings && d.day.warnings.length ? `<div class="muted small" style="margin-top:8px">⚠️ ${d.day.warnings.map(esc).join(' · ')}</div>` : ''}</div>`;
 
@@ -830,6 +832,11 @@ function lineStationModal(id) {
     $('#larr', b).onclick = e => act(e.target, async () => { await api('setLinePos', { session: A.s, lineId: id, arrived: l.state !== 'arrived' }); closeModal(); await adminLoad(); });
   });
 }
+function dateModal() {
+  openModal('📅 תאריך ההסעה', `<p class="muted">ההתראות (נהג חסר, ההסעה לא יצאה וכו׳) מחושבות לפי התאריך הזה.</p><input class="i" type="date" id="dd" value="${esc(A.data.day.date || '')}"><button class="btn block" style="margin-top:10px" id="dds">שמירה</button>`, b => {
+    $('#dds', b).onclick = e => act(e.target, async () => { await api('setDate', { session: A.s, date: $('#dd').value }); closeModal(); toast('נשמר ✓'); await adminLoad(); });
+  });
+}
 function announceModal() {
   const cur = A.data.day.announce;
   openModal('📢 הודעה לכל החניכים', `<textarea class="i" id="an" rows="3" placeholder="למשל: בגלל עומסים כל ההסעות מתעכבות בכ-10 דק׳">${esc(cur ? cur.text : '')}</textarea>
@@ -854,10 +861,12 @@ async function openDayModal() {
       $('#pv').innerHTML = `<div class="card"><div class="spread"><b>נמצאו ${p.lines.length} קווים, ${p.total} חניכים</b>${p.unregistered ? `<span class="pill warn">${p.unregistered} לא רשומים</span>` : ''}</div>
         ${p.lines.map(l => `<div style="margin-top:10px"><b>${esc(l.name)}</b> <span class="muted">(${l.kids})</span><div class="muted small">${l.stations.map(s => esc(s.time) + ' ' + esc(s.name) + ' (' + s.kids + ')').join(' · ')}</div></div>`).join('')}
         ${p.warnings.length ? `<div class="banner warn" style="margin-top:10px">${p.warnings.map(esc).join('<br>')}</div>` : ''}</div>
+        <label class="f">📅 תאריך ההסעה</label><input class="i" type="date" id="odd" value="${esc(p.date || '')}">
+        <p class="muted small">אפשר לפתוח את היום מראש (למשל ביום שישי) — ההתראות יתחילו רק ביום ההסעה.</p>
         <p class="muted small">בדקו שהקווים והתחנות נקראו נכון. חניכים שיתווספו לטבלה אחר כך יופיעו אוטומטית.</p>
         ${A.data.day ? `<div class="banner warn">כבר פתוח יום (${esc(A.data.day.tab)}). פתיחה מחדש תשמור אותו להיסטוריה ותאפס את כל הסטטוסים.</div>` : ''}
         <button class="btn block ok" id="od">פתיחת היום</button>`;
-      $('#od').onclick = e => act(e.target, async () => { await api('openDay', { session: A.s, tab: $('#tb').value, force: !!A.data.day }); closeModal(); toast('היום נפתח ✓'); A.tab = 'shift'; await adminLoad(); });
+      $('#od').onclick = e => act(e.target, async () => { await api('openDay', { session: A.s, tab: $('#tb').value, date: $('#odd').value, force: !!A.data.day }); closeModal(); toast('היום נפתח ✓'); A.tab = 'shift'; await adminLoad(); });
     };
     $('#tb').onchange = () => act(null, pv);
     await pv();
@@ -1040,7 +1049,7 @@ function subHistory(el, r) {
     <div class="card"><h2>חניכים — לא הגיעו / איחרו</h2>${r.kids.filter(k => k.no || k.late).slice(0, 60).map(k => `<div class="spread small" style="padding:5px 0;border-bottom:1px solid var(--line)"><span>${esc(k.name)} · ${esc(k.group)}</span><span>${k.no ? `<span class="pill bad">${k.no} לא הגיע/ה</span>` : ''} ${k.late ? `<span class="pill warn">${k.late} איחורים</span>` : ''} <span class="muted">מתוך ${k.trips}</span></span></div>`).join('') || '<div class="muted">אין</div>'}</div>
     <div class="card"><h2>פירוט "לא הגיעו"</h2>${r.noShows.slice(0, 80).map(n => `<div class="small" style="padding:3px 0">${esc(n.date)} · <b>${esc(n.name)}</b> ${esc(n.group)} · ${esc(n.line)} / ${esc(n.station)}</div>`).join('') || '<div class="muted">אין</div>'}</div>`;
 }
-const ACTS = { login: 'כניסה', openDay: 'פתיחת יום', closeDay: 'סגירת יום', replaceDay: 'החלפת גיליון', setLine: 'הגדרת קו', setLineStation: 'תיקון מיקום הסעה', announce: 'הודעה', approve: 'אישור הרשמה', reject: 'דחיית הרשמה', saveUser: 'שמירת משתמש', delUser: 'מחיקת משתמש', saveStudent: 'עריכת חניך', delStudent: 'מחיקת חניך', resetStudent: 'ניתוק מכשיר', saveStation: 'עריכת תחנה', saveSettings: 'הגדרות' };
+const ACTS = { setDate: 'שינוי תאריך הסעה', bulkUsers: 'ייבוא צוות', login: 'כניסה', openDay: 'פתיחת יום', closeDay: 'סגירת יום', replaceDay: 'החלפת גיליון', setLine: 'הגדרת קו', setLineStation: 'תיקון מיקום הסעה', announce: 'הודעה', approve: 'אישור הרשמה', reject: 'דחיית הרשמה', saveUser: 'שמירת משתמש', delUser: 'מחיקת משתמש', saveStudent: 'עריכת חניך', delStudent: 'מחיקת חניך', resetStudent: 'ניתוק מכשיר', saveStation: 'עריכת תחנה', saveSettings: 'הגדרות' };
 function subLog(el, r) {
   el.innerHTML = `<div class="card"><h2>יומן פעולות</h2><ul class="list">${r.log.map(l => `<li><div class="spread"><b>${esc(l.user)}</b><span class="muted small">${new Date(l.ts).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div><div class="small">${ACTS[l.action] || esc(l.action)} <span class="muted">${esc(String(l.details).slice(0, 120))}</span></div></li>`).join('')}</ul></div>`;
 }
