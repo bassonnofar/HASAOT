@@ -267,7 +267,7 @@ async function kidLoad() {
   kidRender();
 }
 function kidRender() {
-  if (modalOpen()) return;
+  if (modalOpen() || K.registering) return; // לא לקפוץ באמצע הרשמה
   const d = K.me;
   if (!d.registered) return kidWelcome();
   if (d.status === 'pending') {
@@ -375,7 +375,7 @@ function kidWelcome() {
   ${installCard()}</div>`;
 }
 async function kidStartRegister(changeName) {
-  K.pick = null; K.changeName = !!changeName;
+  K.pick = null; K.changeName = !!changeName; K.registering = true;
   $('#app').innerHTML = kidHeader('הרשמה') + `<div class="wrap"><div class="empty"><span class="spin"></span> טוען רשימה...</div></div>`;
   await act(null, async () => { K.roster = await api('roster'); kidPickRender(''); });
 }
@@ -393,10 +393,11 @@ function kidPickRender(q) {
   });
   if (!lines.length) h += `<div class="empty">רשימת ההסעות עוד לא פורסמה. נסו שוב מאוחר יותר.</div>`;
   else if (!n) h += `<div class="empty">לא נמצא. נסו לחפש רק שם פרטי.</div>`;
-  h += `</div><p class="muted small center" style="margin-top:16px">לא מוצא/ת את עצמך? רק מי שרשום/ה להסעה השבוע מופיע/ה ברשימה. פנה/י למדריך/ה.</p></div>`;
+  h += `</div><button class="btn sec block" style="margin-top:14px" onclick="kidCancelRegister()">ביטול</button><p class="muted small center" style="margin-top:16px">לא מוצא/ת את עצמך? רק מי שרשום/ה להסעה השבוע מופיע/ה ברשימה. פנה/י למדריך/ה.</p></div>`;
   $('#app').innerHTML = h;
   const qi = $('#q'); qi.oninput = () => { const pos = qi.selectionStart; kidPickRender(qi.value); const n2 = $('#q'); n2.focus(); n2.setSelectionRange(pos, pos); };
 }
+function kidCancelRegister() { K.registering = false; kidLoad(); }
 function kidPicked(key) {
   let k = null;
   K.roster.lines.forEach(l => l.kids.forEach(x => { if (x.key === key) k = x; }));
@@ -415,6 +416,7 @@ async function kidSubmit(btn) {
   await act(btn, async () => {
     const r = await api('register', { key: K.pick.key, phone, consent, token: LS.get('hs_token') || '' });
     LS.set('hs_token', r.token);
+    K.registering = false;
     toast(r.status === 'pending' ? 'נשלח לאישור הצוות' : 'נרשמת בהצלחה ✓');
     await kidLoad();
   });
