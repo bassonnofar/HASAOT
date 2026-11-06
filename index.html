@@ -319,19 +319,27 @@ const maps = {};
 function busIcon(label, fresh) {
   return L.divIcon({ className: '', iconSize: null, html: `<div style="transform:translate(50%,-50%);background:${fresh ? '#d68910' : '#8a9599'};color:#fff;border-radius:12px;padding:3px 8px;font:700 13px Heebo;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">🚌 ${esc(label)}</div>` });
 }
+function withLeaflet(cb) {
+  if (window.L) return cb();
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+  s.onload = cb; document.head.appendChild(s);
+  if (!document.querySelector('link[href*="leaflet.css"][data-alt]')) { const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'; c.dataset.alt = '1'; document.head.appendChild(c); }
+}
 function drawMap(id, points) {
   const el = document.getElementById(id);
-  if (!el || !window.L) return;
+  if (!el) return;
+  if (!window.L) return withLeaflet(() => drawMap(id, points));
   let m = maps[id];
   if (!m || m._container !== el) {
     m = maps[id] = L.map(el, { zoomControl: true, attributionControl: false }).setView([31.8, 34.9], 8);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(m);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
     m._lay = L.layerGroup().addTo(m);
   }
   m._lay.clearLayers();
   const b = [];
   points.forEach(p => { L.marker([p.lat, p.lng], { icon: busIcon(p.label, p.fresh) }).addTo(m._lay); b.push([p.lat, p.lng]); });
-  if (b.length === 1) m.setView(b[0], 13); else if (b.length) m.fitBounds(b, { padding: [40, 40] });
+  if (!m._fitted && b.length) { if (b.length === 1) m.setView(b[0], 13); else m.fitBounds(b, { padding: [40, 40] }); m._fitted = true; }
   setTimeout(() => m.invalidateSize(), 50);
 }
 
@@ -685,6 +693,7 @@ async function adminLoad() {
   const ae = document.activeElement;
   if (modalOpen() || (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName))) { refreshBadges(); return; }
   if (A.tab === 'admin') { refreshBadges(); return; }
+  if (A.tab === 'map' && $('#amap') && A.data.day) { drawMap('amap', A.data.lines.filter(l => l.pos).map(l => ({ lat: l.pos.lat, lng: l.pos.lng, label: l.name + ' · ' + ago(l.pos.ts), fresh: Date.now() - l.pos.ts < 4 * 60000 }))); return; }
   const y = window.scrollY;
   adminShell();
   window.scrollTo(0, y);
@@ -895,8 +904,7 @@ function renderMapTab(m) {
   m.innerHTML = `<div class="card" style="padding:8px"><div id="amap" class="map tall"></div></div>
     ${d.lines.map(l => `<div class="spread small" style="padding:4px 6px"><span>${esc(l.name)}</span><span class="muted">${l.pos ? `<a href="https://www.google.com/maps?q=${l.pos.lat},${l.pos.lng}" target="_blank" rel="noopener">📍 ${ago(l.pos.ts)}</a>` : 'אין מיקום'}</span></div>`).join('')}
     ${pts.length ? '' : '<p class="muted center">המיקום מגיע מהטלפון של החניך/ה האחראי/ת כשהשיתוף פועל.</p>'}`;
-  const draw = () => drawMap('amap', pts);
-  if (window.L) draw(); else window.addEventListener('load', draw, { once: true });
+  drawMap('amap', pts);
 }
 
 /* ---------- טאב חניכים ---------- */
