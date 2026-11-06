@@ -1,0 +1,25 @@
+{
+  "name": "הסעות כפר עיינות",
+  "short_name": "הסעות עיינות",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "he",
+  "background_color": "#f4f1ea",
+  "theme_color": "#1f4e5f",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "id": "hasaot-kids"
+}

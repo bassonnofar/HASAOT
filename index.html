@@ -7,7 +7,10 @@
 <meta name="theme-color" content="#1f4e5f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="הסעות עיינות">
-<link rel="manifest" href="manifest.json">
+<script>
+  // מסך הניהול מותקן כאפליקציה נפרדת
+  document.write('<link rel="manifest" href="' + (location.hash.indexOf('#admin') === 0 ? 'manifest-admin.json' : 'manifest.json') + '">');
+</script>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -162,6 +165,31 @@ async function act(btn, fn) {
   finally { if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = btn._t; } }
 }
 
+/* ---------- התקנה כאפליקציה ---------- */
+let installEvt = null;
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+window.addEventListener('appinstalled', () => { installEvt = null; toast('האפליקציה הותקנה ✓'); boot(); });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+const installHdrBtn = () => isStandalone() ? '' : `<button onclick="installApp()" aria-label="התקנה">📲 התקנה</button>`;
+const installCard = () => isStandalone() ? '' : `<button class="btn out block" style="margin-bottom:12px" onclick="installApp()">📲 התקנה כאפליקציה במסך הבית</button>`;
+async function installApp() {
+  if (installEvt) {
+    installEvt.prompt();
+    const r = await installEvt.userChoice.catch(() => null);
+    installEvt = null;
+    if (r && r.outcome === 'accepted') toast('מתקינים... האייקון יופיע במסך הבית');
+    return;
+  }
+  if (isIOS()) return openModal('📲 התקנה באייפון', `<ol style="font-size:17px;line-height:1.9;padding-right:20px">
+    <li>לחצו על כפתור השיתוף <b>⬆️</b> בתחתית ספארי</li><li>גללו ובחרו <b>"הוספה למסך הבית"</b></li><li>לחצו <b>"הוסף"</b></li></ol>
+    <p class="muted small">חייבים לפתוח את הדף בספארי (לא מתוך וואטסאפ). אם הדף נפתח בתוך וואטסאפ — לחצו על ⋯ ← "פתיחה בספארי".</p>`);
+  openModal('📲 התקנה כאפליקציה', `<ol style="font-size:17px;line-height:1.9;padding-right:20px">
+    <li>לחצו על <b>⋮</b> (שלוש הנקודות) למעלה בכרום</li><li>בחרו <b>"התקנת אפליקציה"</b> או <b>"הוספה למסך הבית"</b></li><li>אשרו — האייקון יופיע במסך הבית</li></ol>
+    <p class="muted small">אם הדף נפתח מתוך וואטסאפ — לחצו קודם על ⋮ ← "פתיחה בכרום".</p>`);
+}
+
 /* ---------- סטטוסים ---------- */
 const ST = {
   none: { t: 'לא דווח', c: '' }, here: { t: 'בתחנה', c: 'info' }, late: { t: 'מאחר/ת', c: 'warn' },
@@ -220,7 +248,7 @@ const K = { me: null, roster: null, pick: null, respMode: LS.get('hs_resp') === 
 
 function kidHeader(sub) {
   return `<header class="top"><div style="flex:1"><h1>🚌 הסעות ${VILLAGE}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div>
-  <button onclick="kidRefresh(this)" aria-label="רענון">⟳</button></header>`;
+  ${installHdrBtn()}<button onclick="kidRefresh(this)" aria-label="רענון">⟳</button></header>`;
 }
 async function kidInit() {
   document.title = 'הסעות ' + VILLAGE;
@@ -324,7 +352,7 @@ function kidRender() {
 }
 function kidDetailsCard() {
   const m = K.me.me;
-  return `<details class="card"><summary class="spread"><span class="muted">הפרטים שלי</span><span class="muted">▾</span></summary>
+  return installCard() + `<details class="card"><summary class="spread"><span class="muted">הפרטים שלי</span><span class="muted">▾</span></summary>
     <div class="kv" style="margin-top:10px"><b>שם</b><span>${esc(m.name)} · ${esc(m.group)}</span><b>טלפון</b><span>${esc(fmtPhone(m.phone))}</span><b>הצגת מספר כשאני אחראי/ת</b><span>${m.consent ? 'מאושר' : 'לא מאושר'}</span></div>
     <div class="btns c2" style="margin-top:10px"><button class="btn sec sm" onclick="kidEditDetails()">עדכון פרטים</button><button class="btn sec sm" onclick="kidStartRegister()">זה לא אני</button></div></details>`;
 }
@@ -344,7 +372,7 @@ function kidWelcome() {
   $('#app').innerHTML = kidHeader() + `<div class="wrap"><div class="card hero"><div class="emoji">🚌</div><h2>ברוכים הבאים להסעות ${VILLAGE}</h2>
   <p class="muted">כאן תראו כל מוצ״ש את התחנה שלכם, מתי ההסעה מגיעה ומי האחראי/ת. נרשמים פעם אחת — לוקח דקה.</p>
   <button class="btn block" onclick="kidStartRegister()">הרשמה</button></div>
-  <div class="card small muted">💡 כדאי להוסיף את הדף למסך הבית: בתפריט הדפדפן ← "הוספה למסך הבית".</div></div>`;
+  ${installCard()}</div>`;
 }
 async function kidStartRegister(changeName) {
   K.pick = null; K.changeName = !!changeName;
@@ -516,7 +544,7 @@ function adminLogin() {
   <h2>כניסת צוות</h2><label class="f">טלפון</label><input class="i" id="lp" type="tel" inputmode="tel" autocomplete="username">
   <label class="f">קוד אישי</label><input class="i" id="lc" type="password" inputmode="numeric" autocomplete="current-password">
   <button class="btn block" style="margin-top:14px" id="lb">כניסה</button></div>
-  <p class="center muted small"><a href="${esc(APP_URL)}">למסך החניכים</a></p></div>`;
+  ${installCard()}<p class="center muted small"><a href="${esc(APP_URL)}">למסך החניכים</a></p></div>`;
   const go = () => act($('#lb'), async () => {
     const r = await api('login', { phone: $('#lp').value, pin: $('#lc').value });
     A.s = r.session; A.user = r.user; LS.set('hs_session', r.session); LS.set('hs_user', JSON.stringify(r.user));
@@ -530,7 +558,7 @@ function adminShell() {
   const alertsN = d && d.alerts ? d.alerts.filter(a => a.lvl === 'red').length : 0;
   const pend = d && d.pending ? d.pending.length : 0;
   $('#app').innerHTML = `<header class="top"><div style="flex:1"><h1>ניהול הסעות</h1><div class="sub">${esc(A.user.name)} · ${isAdmin() ? 'מנהלת ראשית' : 'מנהל/ת תורן/ית'}${d && d.day ? ' · ' + esc(d.day.tab) : ''}</div></div>
-    <button onclick="adminRefresh(this)">⟳</button><button onclick="if(confirm('להתנתק?'))logout()">יציאה</button></header>
+    ${installHdrBtn()}<button onclick="adminRefresh(this)">⟳</button><button onclick="if(confirm('להתנתק?'))logout()">יציאה</button></header>
     <div class="wrap" id="main"></div>
     <nav class="bottom">${NAV.filter(n => n[0] !== 'admin' || isAdmin()).map(n => `<button class="${A.tab === n[0] ? 'on' : ''}" onclick="adminTab('${n[0]}')"><span class="ic">${n[1]}</span>${n[2]}${n[0] === 'shift' && alertsN ? `<span class="badge">${alertsN}</span>` : ''}${n[0] === 'kids' && pend ? `<span class="badge">${pend}</span>` : ''}</button>`).join('')}</nav>`;
   adminRenderMain();
