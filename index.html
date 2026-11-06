@@ -265,15 +265,15 @@ const SERVER_ERR_EN = {
 };
 let LANG = LS.get('hs_lang') || ((navigator.language || '').toLowerCase().startsWith('he') ? 'he' : (navigator.language || '').toLowerCase().startsWith('en') ? 'en' : 'he');
 const isAdminView = () => location.hash.startsWith('#admin');
-const L = () => isAdminView() ? 'he' : LANG;
-function t(k, ...a) { const v = (I18N[L()] || I18N.he)[k]; const w = v === undefined ? I18N.he[k] : v; return typeof w === 'function' ? w(...a) : w; }
-function applyDir() { document.documentElement.lang = L(); document.documentElement.dir = L() === 'en' ? 'ltr' : 'rtl'; }
+const LG = () => isAdminView() ? 'he' : LANG; // (לא L — זה השם של ספריית המפות)
+function t(k, ...a) { const v = (I18N[LG()] || I18N.he)[k]; const w = v === undefined ? I18N.he[k] : v; return typeof w === 'function' ? w(...a) : w; }
+function applyDir() { document.documentElement.lang = LG(); document.documentElement.dir = LG() === 'en' ? 'ltr' : 'rtl'; }
 function setLang(l) { LANG = l; LS.set('hs_lang', l); applyDir(); if (K.me) kidRender(); else kidInit(); }
-const errText = m => L() === 'en' ? (SERVER_ERR_EN[m] || m) : m;
+const errText = m => LG() === 'en' ? (SERVER_ERR_EN[m] || m) : m;
 /** שם תחנה/הודעה באנגלית אם הוזן */
-const sName = s => (L() === 'en' && s && s.nameEn) ? s.nameEn : (s ? s.name : '');
-const sNote = s => (L() === 'en' && s && s.noteEn) ? s.noteEn : (s ? s.note : '');
-const msgText = m => !m ? '' : (L() === 'en' && m.en) ? m.en : m.text;
+const sName = s => (LG() === 'en' && s && s.nameEn) ? s.nameEn : (s ? s.name : '');
+const sNote = s => (LG() === 'en' && s && s.noteEn) ? s.noteEn : (s ? s.note : '');
+const msgText = m => !m ? '' : (LG() === 'en' && m.en) ? m.en : m.text;
 
 /* ---------- התקנה כאפליקציה ---------- */
 let installEvt = null;
@@ -292,7 +292,7 @@ async function installApp() {
     if (r && r.outcome === 'accepted') toast(t('installing'));
     return;
   }
-  const pad = L() === 'en' ? 'padding-left:20px' : 'padding-right:20px';
+  const pad = LG() === 'en' ? 'padding-left:20px' : 'padding-right:20px';
   if (isIOS()) return openModal(t('iosTitle'), `<ol style="font-size:17px;line-height:1.9;${pad}">${t('iosSteps')}</ol><p class="muted small">${t('iosNote')}</p>`);
   openModal(t('andTitle'), `<ol style="font-size:17px;line-height:1.9;${pad}">${t('andSteps')}</ol><p class="muted small">${t('andNote')}</p>`);
 }
@@ -361,7 +361,7 @@ const K = { me: null, roster: null, pick: null, respMode: LS.get('hs_resp') === 
 
 function kidHeader(sub) {
   return `<header class="top"><div style="flex:1"><h1>🚌 ${t('title')}</h1>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div>
-  <button onclick="setLang('${L() === 'en' ? 'he' : 'en'}')" aria-label="language">${t('langBtn')}</button>
+  <button onclick="setLang('${LG() === 'en' ? 'he' : 'en'}')" aria-label="language">${t('langBtn')}</button>
   ${installHdrBtn()}<button onclick="kidRefresh(this)" aria-label="${t('refresh')}">⟳</button></header>`;
 }
 async function kidInit() {
@@ -506,7 +506,7 @@ function kidPickRender(q) {
     const kids = l.kids.filter(k => !qq || (k.name + ' ' + k.group + ' ' + k.station).toLowerCase().includes(qq.toLowerCase()));
     if (!kids.length) return;
     h += `<h3 class="muted" style="margin:14px 0 6px">${esc(l.name)}</h3>`;
-    kids.forEach(k => { n++; h += `<button class="pick ${k.taken ? 'taken' : ''}" onclick="kidPicked('${esc(k.key)}')"><span><b>${esc(k.name)}</b> <span class="muted">${esc(k.group)}</span><br><span class="muted small">${esc(k.station)}</span></span>${k.taken ? `<span class="pill">${t('registered')}</span>` : `<span>${L() === 'en' ? '›' : '‹'}</span>`}</button>`; });
+    kids.forEach(k => { n++; h += `<button class="pick ${k.taken ? 'taken' : ''}" onclick="kidPicked('${esc(k.key)}')"><span><b>${esc(k.name)}</b> <span class="muted">${esc(k.group)}</span><br><span class="muted small">${esc(k.station)}</span></span>${k.taken ? `<span class="pill">${t('registered')}</span>` : `<span>${LG() === 'en' ? '›' : '‹'}</span>`}</button>`; });
   });
   if (!lines.length) h += `<div class="empty">${t('listNotYet')}</div>`;
   else if (!n) h += `<div class="empty">${t('notFound')}</div>`;
@@ -559,7 +559,7 @@ function respRender() {
   const d = K.me, l = d.line, rv = d.respView;
   const nextIdx = l.state === 'arrived' ? -1 : l.curIdx + 1;
   let h = `<header class="top"><div style="flex:1"><h1>${t('respTitle')}</h1><div class="sub">${esc(l.name)}</div></div>
-    <button onclick="setLang('${L() === 'en' ? 'he' : 'en'}')">${t('langBtn')}</button>
+    <button onclick="setLang('${LG() === 'en' ? 'he' : 'en'}')">${t('langBtn')}</button>
     <button onclick="kidRefresh(this)">⟳</button><button onclick="setRespMode(false)">${t('myScreen')}</button></header><div class="wrap">`;
   if (d.day.announce) h += `<div class="banner info">📢 ${esc(msgText(d.day.announce))}</div>`;
   if (l.msg) h += `<div class="banner warn">📢 ${t('fromStaff')}: ${esc(msgText(l.msg))}</div>`;
