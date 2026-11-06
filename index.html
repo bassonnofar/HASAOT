@@ -529,6 +529,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
    ===================================================================== */
 const A = { s: LS.get('hs_session'), user: JSON.parse(LS.get('hs_user') || 'null'), tab: 'shift', data: null, open: {}, sub: 'users', cache: {}, filter: '' };
 const isAdmin = () => A.user && A.user.role === 'admin';
+const canEdit = () => A.user && A.user.role !== 'staff';
+const ROLE = { admin: 'מנהלת ראשית', duty: 'מנהל/ת תורן/ית', staff: 'צוות — צפייה' };
 
 function logout(expired) {
   LS.set('hs_session', null); LS.set('hs_user', null); A.s = null; A.user = null; pollFn = null;
@@ -559,7 +561,7 @@ function adminShell() {
   const d = A.data;
   const alertsN = d && d.alerts ? d.alerts.filter(a => a.lvl === 'red').length : 0;
   const pend = d && d.pending ? d.pending.length : 0;
-  $('#app').innerHTML = `<header class="top"><div style="flex:1"><h1>ניהול הסעות</h1><div class="sub">${esc(A.user.name)} · ${isAdmin() ? 'מנהלת ראשית' : 'מנהל/ת תורן/ית'}${d && d.day ? ' · ' + esc(d.day.tab) : ''}</div></div>
+  $('#app').innerHTML = `<header class="top"><div style="flex:1"><h1>ניהול הסעות</h1><div class="sub">${esc(A.user.name)} · ${ROLE[A.user.role] || ''}${d && d.day ? ' · ' + esc(d.day.tab) : ''}</div></div>
     ${installHdrBtn()}<button onclick="adminRefresh(this)">⟳</button><button onclick="if(confirm('להתנתק?'))logout()">יציאה</button></header>
     <div class="wrap" id="main"></div>
     <nav class="bottom">${NAV.filter(n => n[0] !== 'admin' || isAdmin()).map(n => `<button class="${A.tab === n[0] ? 'on' : ''}" onclick="adminTab('${n[0]}')"><span class="ic">${n[1]}</span>${n[2]}${n[0] === 'shift' && alertsN ? `<span class="badge">${alertsN}</span>` : ''}${n[0] === 'kids' && pend ? `<span class="badge">${pend}</span>` : ''}</button>`).join('')}</nav>`;
@@ -591,7 +593,7 @@ function renderShift(m) {
   const d = A.data;
   if (!d.day) {
     m.innerHTML = `<div class="card hero"><div class="emoji">🌙</div><h2>אין יום הסעות פתוח</h2><p class="muted">פותחים יום לפני ההסעה — המערכת קוראת את גיליון "חזור" מטבלת המדריכים.</p>
-      <button class="btn block" onclick="openDayModal()">פתיחת יום הסעות</button></div>
+      ${canEdit() ? '<button class="btn block" onclick="openDayModal()">פתיחת יום הסעות</button>' : '<p class="muted">המנהל/ת התורן/ית יפתח/תפתח את היום לפני ההסעה.</p>'}</div>
       ${d.pending.length ? `<div class="banner info" onclick="adminTab('kids')">${d.pending.length} בקשות הרשמה ממתינות ‹</div>` : ''}`;
     return;
   }
@@ -601,7 +603,7 @@ function renderShift(m) {
   let h = `<div class="card"><div class="spread"><div><div class="muted small">סה״כ עלו</div><div class="big">${on}<span class="muted" style="font-size:18px"> / ${tot}</span></div></div>
     <div class="row wrap2" style="justify-content:flex-end">${no ? `<span class="pill bad">${no} לא הגיעו</span>` : ''}${late ? `<span class="pill warn">${late} מאחרים</span>` : ''}<span class="pill"><span class="live"></span>${hm(d.day.readAt)}</span></div></div>
     <div class="prog"><i style="width:${tot ? Math.round(on / tot * 100) : 0}%"></i></div>
-    <div class="row wrap2" style="margin-top:8px"><button class="btn sm sec" onclick="announceModal()">📢 הודעה לכולם</button><button class="btn sm sec" onclick="closeDayModal()">סגירת יום</button><button class="btn sm sec" onclick="openDayModal()">החלפת גיליון</button></div>
+    ${canEdit() ? `<div class="row wrap2" style="margin-top:8px"><button class="btn sm sec" onclick="announceModal()">📢 הודעה לכולם</button><button class="btn sm sec" onclick="closeDayModal()">סגירת יום</button><button class="btn sm sec" onclick="openDayModal()">החלפת גיליון</button></div>` : `<div class="muted small" style="margin-top:8px">👁 צפייה בלבד${A.user.groups ? ' · הקבוצות שלך: ' + esc(A.user.groups.split(',').join(', ')) : ''}</div>`}
     ${d.day.announce ? `<div class="banner info" style="margin:10px 0 0">📢 ${esc(d.day.announce.text)}</div>` : ''}
     ${d.day.warnings && d.day.warnings.length ? `<div class="muted small" style="margin-top:8px">⚠️ ${d.day.warnings.map(esc).join(' · ')}</div>` : ''}</div>`;
 
@@ -611,8 +613,8 @@ function renderShift(m) {
     const al = d.alerts.slice().sort((a, b) => order[a.lvl] - order[b.lvl]);
     h += `<div class="card"><h2>דורש טיפול (${al.length})</h2>` + al.map(a => `<div class="alert ${a.lvl}"><div class="t">${a.line ? `<b>${esc(a.line)}</b>` : ''}${esc(a.txt)}</div>
       ${a.phone ? `<a class="btn xs sec" href="${telLink(a.phone)}">📞</a>` : ''}
-      ${a.key && a.lvl !== 'blue' ? `<button class="btn xs sec" onclick="setKid(this,'${a.lineId}','${esc(a.key)}','on')">✓ עלה</button>` : ''}
-      ${a.lineId && !a.key ? `<button class="btn xs sec" onclick="lineModal('${a.lineId}')">טיפול</button>` : ''}
+      ${a.key && a.lvl !== 'blue' && canEdit() ? `<button class="btn xs sec" onclick="setKid(this,'${a.lineId}','${esc(a.key)}','on')">✓ עלה</button>` : ''}
+      ${a.lineId && !a.key && canEdit() ? `<button class="btn xs sec" onclick="lineModal('${a.lineId}')">טיפול</button>` : ''}
       ${a.go ? `<button class="btn xs sec" onclick="adminTab('${a.go === 'pending' ? 'kids' : a.go}')">פתיחה</button>` : ''}</div>`).join('') + `</div>`;
   }
   // קווים
@@ -633,24 +635,25 @@ function lineCard(l) {
     <div class="kv"><b>נהג/ת</b><span>${l.driver && l.driver.name ? esc(l.driver.name) + (l.driver.phone ? ` · <a href="${telLink(l.driver.phone)}">${fmtPhone(l.driver.phone)}</a>` : '') : '<span class="pill warn">חסר</span>'}</span>
     <b>אחראי/ת</b><span>${l.respName ? esc(l.respName) + (l.respPhone ? ` · <a href="${telLink(l.respPhone)}">${fmtPhone(l.respPhone)}</a>` : '') + (l.respSeen ? ` <span class="muted small">(נראה/תה ${ago(l.respSeen)})</span>` : ' <span class="muted small">(עוד לא נכנס/ה)</span>') : '<span class="pill warn">חסר</span>'}</span>
     ${l.backupName ? `<b>מחליף/ה</b><span>${esc(l.backupName)}</span>` : ''}${l.msg ? `<b>הודעה</b><span>${esc(l.msg)}</span>` : ''}</div>
-    <div class="row wrap2" style="margin-top:10px"><button class="btn sm" onclick="lineModal('${l.id}')">⚙️ הגדרת קו</button>
+    <div class="row wrap2" style="margin-top:10px">${canEdit() ? `<button class="btn sm" onclick="lineModal('${l.id}')">⚙️ הגדרת קו</button>
       <button class="btn sm sec" onclick="sendDriver('${l.id}')" ${l.driver && l.driver.phone ? '' : 'disabled'}>💬 שליחה לנהג</button>
-      <button class="btn sm sec" onclick="sendResp('${l.id}')" ${l.respPhone ? '' : 'disabled'}>💬 לאחראי/ת</button>
+      <button class="btn sm sec" onclick="sendResp('${l.id}')" ${l.respPhone ? '' : 'disabled'}>💬 לאחראי/ת</button>` : ''}
       <button class="btn sm sec" onclick="toggleLine('${l.id}')">${open ? 'הסתרת חניכים ▴' : 'חניכים ▾'}</button></div>`;
   if (open) {
     h += `<div class="hr"></div>` + l.stations.map((s, i) => `<div style="margin-bottom:10px"><div class="spread" style="background:var(--grey);border-radius:10px;padding:6px 10px">
       <b>${i <= l.curIdx ? '✅ ' : ''}${esc(s.time)} · ${esc(s.name)}</b><span class="muted small">${s.kids.filter(k => k.st.s === 'on').length}/${s.kids.length}</span></div>
       ${s.kids.map(k => adminKidRow(l.id, k)).join('') || '<div class="muted small" style="padding:6px">אין חניכים</div>'}</div>`).join('');
-    h += `<div class="row wrap2"><button class="btn sm sec" onclick="lineStationModal('${l.id}')">תיקון מיקום ההסעה / הגעה</button></div>`;
+    if (canEdit()) h += `<div class="row wrap2"><button class="btn sm sec" onclick="lineStationModal('${l.id}')">תיקון מיקום ההסעה / הגעה</button></div>`;
   }
   return h + `</div>`;
 }
 function adminKidRow(lineId, k) {
-  return `<div class="kid"><div class="nm">${esc(k.name)} ${k.isNew ? '<span class="pill info">חדש</span>' : ''}<small>${esc(k.group)}${k.reg ? '' : ' · לא רשום/ה לאפליקציה'}${k.st.by ? ' · ' + esc(k.st.by) : ''}${k.st.ts ? ' · ' + hm(k.st.ts) : ''}</small></div>
-    ${stPill(k.st)}${k.phone ? `<a class="btn xs sec" href="${telLink(k.phone)}">📞</a>` : ''}
-    <button class="btn xs ${k.st.s === 'on' ? 'ok' : 'sec'}" onclick="setKid(this,'${lineId}','${esc(k.key)}','${k.st.s === 'on' ? 'clear' : 'on'}')">✓</button>
+  const call = k.phone ? `<a class="btn xs sec" href="${telLink(k.phone)}">📞</a>` : '';
+  const acts = canEdit() ? `<button class="btn xs ${k.st.s === 'on' ? 'ok' : 'sec'}" onclick="setKid(this,'${lineId}','${esc(k.key)}','${k.st.s === 'on' ? 'clear' : 'on'}')">✓</button>
     <button class="btn xs ${k.st.s === 'no' ? 'bad' : 'sec'}" onclick="setKid(this,'${lineId}','${esc(k.key)}','${k.st.s === 'no' ? 'clear' : 'no'}')">✗</button>
-    <button class="btn xs sec" onclick="kidMenu('${lineId}','${esc(k.key)}')">⋯</button></div>`;
+    <button class="btn xs sec" onclick="kidMenu('${lineId}','${esc(k.key)}')">⋯</button>` : '';
+  return `<div class="kid"><div class="nm">${esc(k.name)} ${k.isNew ? '<span class="pill info">חדש</span>' : ''}<small>${esc(k.group)}${k.reg ? '' : ' · לא רשום/ה לאפליקציה'}${k.st.by ? ' · ' + esc(k.st.by) : ''}${k.st.ts ? ' · ' + hm(k.st.ts) : ''}</small></div>
+    ${stPill(k.st)}${call}${acts}</div>`;
 }
 function toggleLine(id) { A.open[id] = !A.open[id]; adminRenderMain(); }
 async function setKid(btn, lineId, key, val) {
@@ -660,7 +663,7 @@ function kidMenu(lineId, key) {
   const l = lineById(lineId); let k = null;
   l.stations.forEach(s => s.kids.forEach(x => { if (x.key === key) k = x; }));
   openModal(esc(k.raw), `<div class="kv"><b>קו</b><span>${esc(l.name)}</span><b>סטטוס</b><span>${stPill(k.st)}</span><b>טלפון</b><span>${k.phone ? `<a href="${telLink(k.phone)}">${fmtPhone(k.phone)}</a>` : 'לא רשום/ה'}</span></div>
-  <div class="btns c2" style="margin-top:14px"><button class="btn ok" onclick="setKid(this,'${lineId}','${esc(key)}','on')">✓ עלה/תה</button><button class="btn bad" onclick="setKid(this,'${lineId}','${esc(key)}','no')">✗ לא הגיע/ה</button>
+  <div class="btns c2 ${canEdit() ? '' : 'hide'}" style="margin-top:14px"><button class="btn ok" onclick="setKid(this,'${lineId}','${esc(key)}','on')">✓ עלה/תה</button><button class="btn bad" onclick="setKid(this,'${lineId}','${esc(key)}','no')">✗ לא הגיע/ה</button>
   <button class="btn sec" onclick="setKid(this,'${lineId}','${esc(key)}','cancel')">לא נוסע/ת היום</button><button class="btn sec" onclick="setKid(this,'${lineId}','${esc(key)}','clear')">איפוס סטטוס</button></div>
   ${k.phone ? `<a class="btn out block" style="margin-top:8px" href="${waLink(k.phone, 'היי ' + k.name + ', כאן ' + A.user.name + ' מ' + VILLAGE + '. ')}" target="_blank">💬 וואטסאפ לחניך/ה</a>` : ''}`);
 }
@@ -782,7 +785,7 @@ function renderMapTab(m) {
 function renderKidsTab(m) {
   const d = A.data;
   let h = '';
-  h += `<div class="card"><h2>בקשות הרשמה ממתינות (${d.pending.length})</h2>` + (d.pending.length ? d.pending.map(p => `<div class="kid"><div class="nm">${esc(p.name)} · ${esc(p.group)}<small>טלפון בבקשה: ${fmtPhone(p.phone)}${p.curPhone ? ' · רשום כרגע עם: ' + fmtPhone(p.curPhone) : ''}</small></div>
+  if (canEdit()) h += `<div class="card"><h2>בקשות הרשמה ממתינות (${d.pending.length})</h2>` + (d.pending.length ? d.pending.map(p => `<div class="kid"><div class="nm">${esc(p.name)} · ${esc(p.group)}<small>טלפון בבקשה: ${fmtPhone(p.phone)}${p.curPhone ? ' · רשום כרגע עם: ' + fmtPhone(p.curPhone) : ''}</small></div>
       <a class="btn xs sec" href="${telLink(p.phone)}">📞</a><button class="btn xs ok" onclick="approve(this,'${p.token}')">אישור</button><button class="btn xs sec" onclick="reject(this,'${p.token}')">דחייה</button></div>`).join('') + `<p class="muted small">אישור מחליף את המכשיר הקודם של החניך/ה. כדאי לוודא בטלפון שזה באמת הוא/היא.</p>` : '<div class="muted">אין בקשות</div>') + `</div>`;
   if (d.day) {
     const all = []; d.lines.forEach(l => l.stations.forEach(s => s.kids.forEach(k => all.push(Object.assign({ line: l.name, lineId: l.id, station: s.name }, k)))));
@@ -825,26 +828,67 @@ async function adminSub(s) {
   });
 }
 function subUsers(el, r) {
-  el.innerHTML = `<div class="card"><div class="spread"><h2>צוות ומנהלים תורנים</h2><button class="btn sm" onclick="userModal()">+ הוספה</button></div>
-    ${r.users.map(u => `<div class="kid"><div class="nm">${esc(u.name)} ${u.role === 'admin' ? '<span class="pill dark">ראשי</span>' : '<span class="pill">תורן/ית</span>'} ${u.active ? '' : '<span class="pill bad">מושבת</span>'}<small>${fmtPhone(u.phone)}</small></div>
+  el.innerHTML = `<div class="card"><div class="spread"><h2>צוות ומנהלים תורנים</h2><div class="row"><button class="btn sm sec" onclick="bulkModal()">📋 ייבוא רשימה</button><button class="btn sm" onclick="userModal()">+ הוספה</button></div></div>
+    ${r.users.map(u => `<div class="kid"><div class="nm">${esc(u.name)} ${u.role === 'admin' ? '<span class="pill dark">ראשי</span>' : u.role === 'staff' ? '<span class="pill info">צפייה</span>' : '<span class="pill">תורן/ית</span>'} ${u.active ? '' : '<span class="pill bad">מושבת</span>'}<small>${fmtPhone(u.phone)}${u.role === 'staff' ? ' · ' + (u.groups ? esc(u.groups.split(',').join(', ')) : 'כל הקבוצות') : ''}</small></div>
     <button class="btn xs sec" onclick="userModal('${u.id}')">עריכה</button></div>`).join('')}
-    <p class="muted small">מנהל/ת תורן/ית רואה את מסך המשמרת, המפה, החניכים והאירועים — בלי טאב הניהול. נכנסים עם טלפון + קוד אישי.</p></div>`;
+    <p class="muted small"><b>תורן/ית</b> — מנהל/ת את המשמרת (פתיחת יום, נהגים, אחראים, סימונים, הודעות). <b>צפייה</b> — רואה סטטוסים ויכול/ה להתקשר לחניכים, בלי לשנות כלום; אפשר להגביל לקבוצות מסוימות. נכנסים עם טלפון + קוד אישי.</p></div>`;
 }
 function userModal(id) {
-  const u = id ? A.cache.users.users.find(x => x.id === id) : { name: '', phone: '', role: 'duty', active: true };
+  const u = id ? A.cache.users.users.find(x => x.id === id) : { name: '', phone: '', role: 'staff', active: true, groups: '' };
+  const ug = (u.groups || '').split(',').filter(Boolean);
   openModal(id ? 'עריכת משתמש' : 'משתמש חדש', `<label class="f">שם</label><input class="i" id="un" value="${esc(u.name)}">
     <label class="f">טלפון (משמש לכניסה)</label><input class="i" id="up" type="tel" value="${esc(u.phone)}">
-    <label class="f">הרשאה</label><select class="i" id="ur"><option value="duty" ${u.role !== 'admin' ? 'selected' : ''}>מנהל/ת תורן/ית</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>מנהל/ת ראשי/ת (הכל)</option></select>
+    <label class="f">הרשאה</label><select class="i" id="ur"><option value="staff" ${u.role === 'staff' ? 'selected' : ''}>צוות — צפייה בלבד</option><option value="duty" ${u.role === 'duty' ? 'selected' : ''}>מנהל/ת תורן/ית</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>מנהל/ת ראשי/ת (הכל)</option></select>
+    <div id="ugw" class="${u.role === 'staff' ? '' : 'hide'}"><label class="f">רואה את הקבוצות (לא לסמן כלום = כל הקבוצות)</label>
+    <div class="row wrap2">${(A.cache.users.groups || []).concat(ug.filter(g => !(A.cache.users.groups || []).includes(g))).map(g => `<label class="pill" style="padding:6px 12px;font-size:15px"><input type="checkbox" class="ugc" value="${esc(g)}" ${ug.includes(g) ? 'checked' : ''}> ${esc(g)}</label>`).join('') || '<span class="muted small">הקבוצות יופיעו כשיהיה גיליון חזור בטבלה</span>'}</div></div>
     <label class="f">${id ? 'קוד חדש (להשאיר ריק כדי לא לשנות)' : 'קוד כניסה (4-8 ספרות)'}</label><input class="i" id="uc" inputmode="numeric" placeholder="${id ? '••••' : ''}">
     ${id ? `<label class="chk"><input type="checkbox" id="ua" ${u.active ? 'checked' : ''}><span>פעיל/ה</span></label>` : ''}
     <button class="btn block" style="margin-top:12px" id="us">שמירה</button>
     ${id ? `<button class="btn sec block" style="margin-top:8px" id="ud">מחיקה</button>` : ''}
     <p class="muted small">אחרי השמירה — שלחו לו/ה את הקישור <b>${esc(APP_URL)}#admin</b> ואת הקוד.</p>`, b => {
+    $('#ur', b).onchange = () => $('#ugw', b).classList.toggle('hide', $('#ur', b).value !== 'staff');
     $('#us', b).onclick = e => act(e.target, async () => {
-      await api('saveUser', { session: A.s, id: id || '', name: $('#un').value, phone: $('#up').value, role: $('#ur').value, pin: $('#uc').value, active: id ? $('#ua').checked : true });
+      const groups = [...b.querySelectorAll('.ugc:checked')].map(x => x.value);
+      await api('saveUser', { session: A.s, id: id || '', name: $('#un').value, phone: $('#up').value, role: $('#ur').value, pin: $('#uc').value, active: id ? $('#ua').checked : true, groups });
       closeModal(); toast('נשמר ✓'); adminSub('users');
     });
     if (id) $('#ud', b).onclick = e => { if (confirm('למחוק את ' + u.name + '?')) act(e.target, async () => { await api('delUser', { session: A.s, id }); closeModal(); adminSub('users'); }); };
+  });
+}
+function parseBulk(txt, role) {
+  return txt.split(/\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const parts = l.split(/\t|,/).map(x => x.trim()).filter(Boolean);
+    const pi = parts.findIndex(x => /^[+\d][\d\s-]{7,}$/.test(x));
+    if (pi === -1) return { bad: l };
+    const phone = parts[pi];
+    const rest = parts.filter((_, i) => i !== pi);
+    return { name: rest[0] || '', phone, groups: rest.slice(1).join(';'), role };
+  });
+}
+function bulkModal() {
+  openModal('📋 ייבוא רשימת צוות', `<p class="muted small" style="margin-top:0">שורה לכל אדם: <b>שם, טלפון</b>. אפשר להוסיף קבוצה אחרי הטלפון (למשל <b>מיכל כהן, 0521234567, אלמוג</b>). אפשר גם להעתיק עמודות ישירות מגיליון של גוגל ולהדביק כאן.</p>
+    <textarea class="i" id="bt" rows="8" placeholder="מיכל כהן, 0521234567, אלמוג\nדני לוי, 0539876543"></textarea>
+    <label class="f">הרשאה לכולם</label><select class="i" id="br"><option value="staff">צוות — צפייה בלבד</option><option value="duty">מנהל/ת תורן/ית</option></select>
+    <div id="bp" class="muted small" style="margin:8px 0"></div>
+    <button class="btn block" id="bgo">הוספה</button>
+    <p class="muted small">לכל אחד ייווצר קוד כניסה אוטומטי, ותקבלי כפתור לשלוח לו אותו בוואטסאפ.</p>`, b => {
+    const upd = () => { const r = parseBulk($('#bt').value, $('#br').value); const ok = r.filter(x => !x.bad && x.name); $('#bp').innerHTML = r.length ? `${ok.length} אנשים זוהו${r.length - ok.length ? ` · <span style="color:var(--bad)">${r.length - ok.length} שורות בלי טלפון/שם</span>` : ''}` : ''; };
+    $('#bt', b).oninput = upd; $('#br', b).onchange = upd;
+    $('#bgo', b).onclick = e => act(e.target, async () => {
+      const rows = parseBulk($('#bt').value, $('#br').value).filter(x => !x.bad && x.name);
+      if (!rows.length) return toast('לא זוהו שורות. בדקי שיש שם וטלפון בכל שורה');
+      const r = await api('bulkUsers', { session: A.s, rows });
+      A.bulk = r.added;
+      const link = APP_URL + '#admin';
+      const msg = u => `היי ${u.name.split(' ')[0]} 👋\nצירפתי אותך למערכת ההסעות של ${VILLAGE}${u.role === 'staff' ? ' (צפייה בסטטוס החניכים בהסעות)' : ' כמנהל/ת תורן/ית'}.\n\nכניסה: ${link}\nטלפון: ${fmtPhone(u.phone)}\nקוד: ${u.pin}\n\nאחרי הכניסה אפשר ללחוץ "📲 התקנה" כדי לשמור כאפליקציה.\n${A.user.name}`;
+      $('#mbody').innerHTML = `<div class="banner ok">נוספו ${r.added.length} ✓</div>
+        ${r.skipped.length ? `<div class="banner warn">דילגתי על ${r.skipped.length}: ${r.skipped.map(x => esc(x.name) + ' — ' + esc(x.why)).join('<br>')}</div>` : ''}
+        <p class="muted small">שלחי לכל אחד את פרטי הכניסה (הקודים מוצגים רק עכשיו):</p>
+        ${r.added.map(u => `<div class="kid"><div class="nm">${esc(u.name)}<small>${fmtPhone(u.phone)} · קוד <b style="font-size:15px;color:var(--ink)">${u.pin}</b></small></div><a class="btn xs ok" target="_blank" href="${waLink(u.phone, msg(u))}">💬 שליחה</a></div>`).join('')}
+        <button class="btn sec block" style="margin-top:12px" id="bcp">העתקת כל הקודים</button>`;
+      $('#bcp').onclick = () => navigator.clipboard.writeText(r.added.map(u => `${u.name} · ${fmtPhone(u.phone)} · קוד ${u.pin}`).join('\n')).then(() => toast('הועתק'));
+      $('#mbody').closest('.modal').querySelector('[data-close]').onclick = () => { closeModal(); adminSub('users'); };
+    });
   });
 }
 function subStations(el, r) {
