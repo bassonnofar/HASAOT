@@ -100,7 +100,13 @@ nav.bottom .badge{position:absolute;top:0;left:calc(50% - 22px);background:var(-
 .prog i{display:block;height:100%;background:var(--ok);border-radius:9px}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
 .kv b{color:var(--mute);font-weight:500}
-.map{height:240px;border-radius:14px;overflow:hidden;margin-top:8px;z-index:1}
+.map{height:240px;border-radius:14px;overflow:hidden;margin-top:8px;z-index:1;direction:ltr}
+.leaflet-container{direction:ltr;font-family:Heebo,system-ui,sans-serif}
+.stop.empty .nm2,.stop.empty .tm{color:var(--mute)}
+.stop.empty .dot{border-style:dashed}
+.notag{display:block;font-size:12px;color:var(--mute);font-weight:400}
+.st-empty{opacity:.6}
+s.old{color:var(--mute);font-size:.6em;font-weight:500;margin-inline-start:4px}
 .map.tall{height:calc(100vh - 220px)}
 .modal-bg{position:fixed;inset:0;background:rgba(10,20,25,.45);z-index:100;display:flex;align-items:flex-end;justify-content:center}
 .modal{background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 14px calc(18px + env(safe-area-inset-bottom))}
@@ -199,11 +205,16 @@ const I18N = {
     cancel: 'ביטול', cantFind: 'לא מוצא/ת את עצמך? רק מי שרשום/ה להסעה השבוע מופיע/ה ברשימה. פנה/י למדריך/ה.',
     regAs: 'נרשמ/ת בתור', takenWarn: 'השם הזה כבר רשום ממכשיר אחר. אם זה באמת את/ה — הזן/י את אותו מספר טלפון ונחבר אוטומטית, או שהצוות יאשר.',
     yourPhone: 'מספר הטלפון שלך', consent: 'אני מסכים/ה שאם אהיה <b>חניך/ה אחראי/ת</b> בהסעה, המספר שלי יוצג לנוסעים בקו שלי כדי שיוכלו להתקשר אליי.',
-    privacy: 'המספר שלך לא מוצג לנהג, ולא לחניכים אחרים — חוץ מהמקרה שלמעלה. רק צוות הכפר רואה אותו.', finish: 'סיום הרשמה',
+    privacy: 'המספר שלך מוצג רק לצוות הכפר ולחניך/ה האחראי/ת בקו שלך. הנהג לא רואה אותו.', finish: 'סיום הרשמה',
+    noStop: 'אין חניכים רשומים — ההסעה לא עוצרת כאן', etaLbl: 'צפי', delayed: m => `ההסעה מאחרת בכ-${m} דק׳ — השעות עודכנו`, early: m => `ההסעה מקדימה בכ-${m} דק׳ — השעות עודכנו`,
+    inApp: '⚠️ פתחת את האפליקציה מתוך וואטסאפ, ושם שיתוף המיקום לא עובד. לחצ/י על ⋮ למעלה ← <b>"פתיחה בכרום"</b> (באייפון: ⋯ ← <b>"פתיחה בספארי"</b>).',
+    geoTitle: '📍 צריך לאשר מיקום', geoAndroid: '<li>לחצ/י על הסמל שמשמאל לכתובת האתר (🔒 או ⓘ)</li><li>הרשאות ← <b>מיקום</b> ← <b>לאפשר</b></li><li>ודא/י שהמיקום מופעל בטלפון (משיכה מלמעלה ← מיקום)</li><li>חזור/חזרי לכאן ולחצ/י "הפעלה"</li>',
+    geoIOS: '<li>הגדרות ← פרטיות ואבטחה ← <b>שירותי מיקום</b> ← להפעיל</li><li>באותו מסך: <b>Safari Websites</b> ← "בזמן השימוש ביישום"</li><li>חזור/חזרי לכאן ולחצ/י "הפעלה"</li>', geoOther: 'לא הצלחנו לקבל מיקום. בדוק/בדקי שהמיקום מופעל בטלפון ונסה/י שוב.',
+    callKid: '📞', waKid: '💬',
     sentApproval: 'נשלח לאישור הצוות', regOk: 'נרשמת בהצלחה ✓', editTitle: 'עדכון פרטים', consentShort: 'אם אהיה אחראי/ת — אפשר להציג את המספר שלי לנוסעים בקו', save: 'שמירה', saved: 'נשמר ✓',
     // אחראי/ת
     respTitle: '⭐ אחראי/ת הסעה', myScreen: 'המסך שלי', fromStaff: 'מהצוות', gpsOn: 'המיקום משותף', gpsOff: '📍 שיתוף מיקום כבוי',
-    gpsOnTxt: 'השאר/י את המסך פתוח. החניכים רואים איפה ההסעה.', gpsOffTxt: 'החניכים יראו איפה ההסעה רק כשהשיתוף פועל.', stop: 'עצירה', start: 'הפעלה',
+    gpsOnTxt: 'השאר/י את המסך פתוח. החניכים רואים איפה ההסעה. אם יצאת מהאפליקציה — השיתוף יחזור לבד כשתחזור/י.', gpsOffTxt: 'החניכים יראו איפה ההסעה רק כשהשיתוף פועל.', stop: 'עצירה', start: 'הפעלה',
     callDriver: '📞 התקשרות לנהג/ת', arrivedTitle: t => `הגעתם לכפר ב-${t}`, thanks: 'תודה רבה על האחריות!', undoArrive: 'סימנתי בטעות',
     firstStop: 'תחנה ראשונה', curStop: 'התחנה הנוכחית / הבאה', now: 'עכשיו', boardedOf: (a, b) => `עלו ${a} מתוך ${b}`, noKids: 'אין חניכים בתחנה הזו',
     leftBtn: s => `🚌 יצאנו מ${s}`, passedAll: 'עברתם את כל התחנות. כשתגיעו:', arrivedBtn: '🏡 הגענו לכפר', allStops: 'כל התחנות', reports: n => `${n} דיווחים`,
@@ -244,10 +255,15 @@ const I18N = {
     cancel: 'Cancel', cantFind: 'Can\'t find yourself? Only students registered for this week\'s shuttle are listed. Ask your counselor.',
     regAs: 'Registering as', takenWarn: 'This name is already registered on another device. If it\'s really you, enter the same phone number and we\'ll connect you automatically — otherwise staff will approve.',
     yourPhone: 'Your phone number', consent: 'I agree that if I\'m the <b>responsible student</b> on the shuttle, my number will be shown to riders on my line so they can call me.',
-    privacy: 'Your number is never shown to the driver or to other students (except the case above). Only village staff can see it.', finish: 'Finish',
+    privacy: 'Your number is only shown to village staff and the responsible student on your line. The driver never sees it.', finish: 'Finish',
+    noStop: 'No students registered — the shuttle won\'t stop here', etaLbl: 'ETA', delayed: m => `The shuttle is about ${m} min late — times updated`, early: m => `The shuttle is about ${m} min early — times updated`,
+    inApp: '⚠️ You opened the app inside WhatsApp, where location sharing doesn\'t work. Tap ⋮ at the top → <b>"Open in Chrome"</b> (iPhone: ⋯ → <b>"Open in Safari"</b>).',
+    geoTitle: '📍 Location permission needed', geoAndroid: '<li>Tap the icon left of the address bar (🔒 or ⓘ)</li><li>Permissions → <b>Location</b> → <b>Allow</b></li><li>Make sure location is on (swipe down → Location)</li><li>Come back and tap "Start"</li>',
+    geoIOS: '<li>Settings → Privacy & Security → <b>Location Services</b> → On</li><li>Same screen: <b>Safari Websites</b> → "While Using the App"</li><li>Come back and tap "Start"</li>', geoOther: 'Couldn\'t get your location. Make sure location is on and try again.',
+    callKid: '📞', waKid: '💬',
     sentApproval: 'Sent to staff for approval', regOk: 'You\'re registered ✓', editTitle: 'Edit details', consentShort: 'If I\'m responsible — my number may be shown to riders on my line', save: 'Save', saved: 'Saved ✓',
     respTitle: '⭐ Responsible student', myScreen: 'My screen', fromStaff: 'From staff', gpsOn: 'Location is being shared', gpsOff: '📍 Location sharing is off',
-    gpsOnTxt: 'Keep this screen open. Students can see where the shuttle is.', gpsOffTxt: 'Students can only see the shuttle while sharing is on.', stop: 'Stop', start: 'Start',
+    gpsOnTxt: 'Keep this screen open. Students can see where the shuttle is. If you leave the app, sharing resumes when you come back.', gpsOffTxt: 'Students can only see the shuttle while sharing is on.', stop: 'Stop', start: 'Start',
     callDriver: '📞 Call the driver', arrivedTitle: t => `You arrived at the village at ${t}`, thanks: 'Thank you for taking responsibility!', undoArrive: 'I marked this by mistake',
     firstStop: 'First stop', curStop: 'Current / next stop', now: 'Now', boardedOf: (a, b) => `${a} of ${b} on board`, noKids: 'No students at this stop',
     leftBtn: s => `🚌 We left ${s}`, passedAll: 'You\'ve passed all the stops. When you arrive:', arrivedBtn: '🏡 We arrived at the village', allStops: 'All stops', reports: n => `${n} reports`,
@@ -297,6 +313,16 @@ async function installApp() {
   openModal(t('andTitle'), `<ol style="font-size:17px;line-height:1.9;${pad}">${t('andSteps')}</ol><p class="muted small">${t('andNote')}</p>`);
 }
 
+/* ---------- צפי, תחנות ריקות, וואטסאפ ---------- */
+const inWhatsApp = () => /WhatsApp|FBAN|FBAV|Instagram/i.test(navigator.userAgent);
+/** שעה לתצוגה: הצפי המעודכן, ולידו השעה המקורית מחוקה אם יש הפרש */
+function timeHtml(s) {
+  if (!s.eta) return esc(s.time);
+  const e = hm(s.eta);
+  return e === s.time ? esc(e) : `${esc(e)}<s class="old">${esc(s.time)}</s>`;
+}
+const isEmptyStop = s => (s.n !== undefined ? s.n : (s.kids ? s.kids.length : 1)) === 0;
+
 /* ---------- סטטוסים ---------- */
 const ST_C = { none: '', here: 'info', late: 'warn', cancel: '', on: 'ok', no: 'bad' };
 const ST = new Proxy({}, { get: (_, k) => (k in ST_C) ? { t: t('st_' + k), c: ST_C[k] } : undefined, has: (_, k) => k in ST_C });
@@ -317,7 +343,7 @@ const modalOpen = () => !!$('#modal .modal');
 /* ---------- מפות ---------- */
 const maps = {};
 function busIcon(label, fresh) {
-  return L.divIcon({ className: '', iconSize: null, html: `<div style="transform:translate(50%,-50%);background:${fresh ? '#d68910' : '#8a9599'};color:#fff;border-radius:12px;padding:3px 8px;font:700 13px Heebo;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">🚌 ${esc(label)}</div>` });
+  return L.divIcon({ className: '', iconSize: [0, 0], iconAnchor: [0, 0], html: `<div style="position:absolute;transform:translate(-50%,-50%);background:${fresh ? '#d68910' : '#8a9599'};color:#fff;border-radius:12px;padding:3px 8px;font:700 13px Heebo;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">🚌 ${esc(label)}</div>` });
 }
 function withLeaflet(cb) {
   if (window.L) return cb();
@@ -378,7 +404,9 @@ async function kidLoad() {
   catch (e) { if (!K.me) $('#app').innerHTML = kidHeader() + `<div class="wrap"><div class="banner bad">${esc(errText(e.message))}</div></div>`; return; }
   if (!K.me.registered) LS.set('hs_token', null);
   pollMs = (K.me.isResp && K.respMode) ? 15000 : 30000;
-  if (!K.me.isResp && K.gps) stopGps();
+  if (!K.me.isResp && K.gps) stopGps(true);
+  // שיתוף מיקום חוזר לבד אם האחראי/ת הפעיל/ה אותו וחזר/ה לאפליקציה
+  if (K.me.isResp && !K.gps && K.me.line && LS.get('hs_gps') === K.me.line.id && K.me.line.state !== 'arrived') startGps(true);
   kidRender();
 }
 function kidRender() {
@@ -420,7 +448,7 @@ function kidRender() {
   const note = sNote(st);
   h += `<div class="card"><div class="muted">${esc(l.name)}</div>
     <div class="spread" style="margin-top:4px"><div class="grow"><div class="muted small">${t('yourStation')}</div><div class="big">${esc(sName(st))}</div></div>
-    <div class="center"><div class="muted small">${t('pickup')}</div><div class="big">${esc(st.time)}</div></div></div>
+    <div class="center"><div class="muted small">${st.eta ? t('etaLbl') : t('pickup')}</div><div class="big">${timeHtml(st)}</div></div></div>
     ${note ? `<div class="banner info" style="margin:10px 0 0">📍 ${t('whereWait')}: ${esc(note)}</div>` : ''}
     ${st.mapUrl ? `<a class="btn sec sm" style="margin-top:8px" href="${esc(st.mapUrl)}" target="_blank" rel="noopener">${t('openMap')}</a>` : ''}
   </div>`;
@@ -439,15 +467,19 @@ function kidRender() {
 
   // מצב ההסעה
   h += `<div class="card"><div class="spread"><h2>${t('whereBus')}</h2><span class="pill ${LINE_ST[l.state][1]}">${LINE_ST[l.state][0]}</span></div>`;
-  if (l.state === 'wait') h += `<p class="muted">${t('notLeft', esc(stops[0].time))}</p>`;
+  if (l.state === 'wait') h += `<p class="muted">${t('notLeft', esc((stops.find(s => !isEmptyStop(s)) || stops[0]).time))}</p>`;
+  if (l.state === 'route' && Math.abs(l.delay || 0) >= 3) h += `<div class="banner warn" style="margin:6px 0">${l.delay > 0 ? t('delayed', l.delay) : t('early', -l.delay)}</div>`;
   if (l.state === 'route') {
-    const left = st.idx - l.curIdx;
+    // סופרים רק תחנות שבאמת עוצרים בהן
+    const left = st.idx <= l.curIdx ? 0 : stops.filter((s, i) => i > l.curIdx && i <= st.idx && (!isEmptyStop(s) || i === st.idx)).length;
     h += `<p>${t('leftFrom', esc(curName), hm(l.curTs))}<b>${left > 0 ? (left === 1 ? t('nextIsYou') : t('stopsLeft', left)) : t('passedYou')}</b></p>`;
   }
   if (l.state === 'arrived') h += `<p>${t('arrivedAt', hm(l.arrivedAt))}</p>`;
   h += `<div class="stops">` + stops.map((s, i) => {
-    const cls = i <= l.curIdx ? 'passed' : (i === l.curIdx + 1 && l.state === 'route') ? 'now' : '';
-    return `<div class="stop ${cls} ${i === st.idx ? 'mine' : ''}"><span class="dot"></span><span class="nm2">${esc(sName(s))}${i === st.idx ? t('yourStopMark') : ''}</span><span class="tm">${esc(s.time)}</span></div>`;
+    const nextReal = stops.findIndex((x, j) => j > l.curIdx && !isEmptyStop(x));
+    const empty = isEmptyStop(s) && i !== st.idx;
+    const cls = i <= l.curIdx ? 'passed' : (i === nextReal && l.state === 'route') ? 'now' : '';
+    return `<div class="stop ${cls} ${i === st.idx ? 'mine' : ''} ${empty ? 'empty' : ''}"><span class="dot"></span><span class="nm2">${esc(sName(s))}${i === st.idx ? t('yourStopMark') : ''}${empty ? `<span class="notag">${t('noStop')}</span>` : ''}</span><span class="tm">${empty ? esc(s.time) : timeHtml(s)}</span></div>`;
   }).join('') + `</div>`;
   const fresh = l.pos && Date.now() - l.pos.ts < 10 * 60000;
   if (l.state === 'route' && fresh) h += `<div class="muted small" style="margin-top:8px"><span class="live"></span> ${t('busUpdated', ago(l.pos.ts))}</div><div id="kmap" class="map"></div><a class="small" href="https://www.google.com/maps?q=${l.pos.lat},${l.pos.lng}" target="_blank" rel="noopener">${t('openGmaps')}</a>`;
@@ -557,16 +589,18 @@ async function kidSaveDetails(btn) {
 function setRespMode(on) { K.respMode = on; LS.set('hs_resp', on ? '1' : null); pollMs = on ? 15000 : 30000; kidRender(); window.scrollTo(0, 0); }
 function respRender() {
   const d = K.me, l = d.line, rv = d.respView;
-  const nextIdx = l.state === 'arrived' ? -1 : l.curIdx + 1;
+  // התחנה הבאה שבאמת עולים בה חניכים (מדלגים על תחנות ריקות)
+  const nextIdx = l.state === 'arrived' ? -1 : rv.stations.findIndex((s, i) => i > l.curIdx && s.kids.length > 0);
   let h = `<header class="top"><div style="flex:1"><h1>${t('respTitle')}</h1><div class="sub">${esc(l.name)}</div></div>
     <button onclick="setLang('${LG() === 'en' ? 'he' : 'en'}')">${t('langBtn')}</button>
     <button onclick="kidRefresh(this)">⟳</button><button onclick="setRespMode(false)">${t('myScreen')}</button></header><div class="wrap">`;
+  if (inWhatsApp()) h += `<div class="banner bad">${t('inApp')}</div>`;
   if (d.day.announce) h += `<div class="banner info">📢 ${esc(msgText(d.day.announce))}</div>`;
   if (l.msg) h += `<div class="banner warn">📢 ${t('fromStaff')}: ${esc(msgText(l.msg))}</div>`;
 
   const gpsOn = !!K.gps;
   h += `<div class="card"><div class="spread"><div><b>${gpsOn ? '<span class="live"></span> ' + t('gpsOn') : t('gpsOff')}</b><div class="muted small">${gpsOn ? t('gpsOnTxt') : t('gpsOffTxt')}</div></div>
-    <button class="btn sm ${gpsOn ? 'sec' : 'ok'}" onclick="${gpsOn ? 'stopGps()' : 'startGps()'}">${gpsOn ? t('stop') : t('start')}</button></div>
+    <button class="btn sm ${gpsOn ? 'sec' : 'ok'}" onclick="${gpsOn ? 'stopGps(true)' : 'startGps()'}">${gpsOn ? t('stop') : t('start')}</button></div>
     ${rv.driverPhone ? `<a class="btn out block" style="margin-top:10px" href="${telLink(rv.driverPhone)}">${t('callDriver')}${l.driver.name ? ' — ' + esc(l.driver.name) : ''}</a>` : ''}</div>`;
 
   if (l.state === 'arrived') {
@@ -577,7 +611,7 @@ function respRender() {
       const cnt = st.kids.filter(k => k.s === 'on').length;
       const note = sNote(st);
       h += `<div class="card" style="border:2px solid var(--warn)"><div class="spread"><div><div class="muted small">${l.state === 'wait' ? t('firstStop') : t('curStop')}</div><div class="big" style="font-size:22px">${esc(sName(st))}</div></div>
-        <div class="center"><div class="big" style="font-size:22px">${esc(st.time)}</div><div class="muted small">${t('now')} ${hm(Date.now())}</div></div></div>
+        <div class="center"><div class="big" style="font-size:22px">${timeHtml(st)}</div><div class="muted small">${t('now')} ${hm(Date.now())}</div></div></div>
         ${note ? `<div class="muted small" style="margin-top:6px">📍 ${esc(note)}</div>` : ''}
         <div class="muted small" style="margin:8px 0 2px">${t('boardedOf', cnt, st.kids.length)}</div>
         ${st.kids.map(k => respKidRow(k)).join('') || `<div class="muted">${t('noKids')}</div>`}
@@ -587,10 +621,11 @@ function respRender() {
     }
   }
   h += `<div class="card"><h2>${t('allStops')}</h2>` + rv.stations.map((s, i) => {
+    if (!s.kids.length) return `<div class="spread st-empty" style="padding:10px 0;border-bottom:1px solid var(--line)"><span>${i <= l.curIdx ? '✅' : '⚪'} <b>${esc(s.time)}</b> ${esc(sName(s))}<span class="notag">${t('noStop')}</span></span></div>`;
     const on = s.kids.filter(k => k.s === 'on').length;
     const flags = s.kids.filter(k => k.s === 'late' || k.s === 'here').length;
     return `<details><summary class="spread" style="padding:10px 0;border-bottom:1px solid var(--line)">
-      <span>${i <= l.curIdx ? '✅' : i === nextIdx ? '🟠' : '⚪'} <b>${esc(s.time)}</b> ${esc(sName(s))}</span>
+      <span>${i <= l.curIdx ? '✅' : i === nextIdx ? '🟠' : '⚪'} <b>${timeHtml(s)}</b> ${esc(sName(s))}</span>
       <span class="row">${flags ? `<span class="pill warn">${t('reports', flags)}</span>` : ''}<span class="pill">${on}/${s.kids.length}</span></span></summary>
       <div style="padding:4px 0 8px">${s.kids.map(k => respKidRow(k)).join('') || `<div class="muted small">${t('noKidsShort')}</div>`}
       ${i <= l.curIdx ? '' : `<button class="btn sec sm" style="margin-top:6px" onclick="respDepart(this,${i})">${t('markLeft')}</button>`}</div></details>`;
@@ -601,12 +636,17 @@ function respRender() {
 function respKidRow(k) {
   if (K.me && k.key === K.me.me.key) return `<div class="kid"><div class="nm">${esc(k.name)} <small>${t('itsYou')}</small></div>${stPill(k)}</div>`;
   const self = k.self && k.s !== k.self ? ` <span class="muted small">(${t('reported')}: ${t('st_' + k.self)})</span>` : '';
-  return `<div class="kid"><div class="nm">${esc(k.name)} <small>${esc(k.group)}${k.ts && k.s !== 'none' ? ' · ' + hm(k.ts) : ''}</small></div>${stPill(k)}${self}
+  const contact = k.phone ? `<a class="btn xs sec" href="${telLink(k.phone)}">📞</a><a class="btn xs sec" target="_blank" rel="noopener" href="${waLink(k.phone, '')}">💬</a>` : '';
+  return `<div class="kid"><div class="nm">${esc(k.name)} <small>${esc(k.group)}${k.ts && k.s !== 'none' ? ' · ' + hm(k.ts) : ''}</small></div>${stPill(k)}${self}${contact}
     <button class="btn xs ${k.s === 'on' ? 'ok' : 'sec'}" onclick="respKid(this,'${esc(k.key)}','${k.s === 'on' ? 'clear' : 'on'}')">✓</button>
     <button class="btn xs ${k.s === 'no' ? 'bad' : 'sec'}" onclick="respKid(this,'${esc(k.key)}','${k.s === 'no' ? 'clear' : 'no'}')">✗</button></div>`;
 }
 async function respOp(btn, data) {
-  await act(btn, async () => { await api('resp', Object.assign({ token: LS.get('hs_token') }, data)); await kidLoad(); });
+  await act(btn, async () => {
+    await api('resp', Object.assign({ token: LS.get('hs_token') }, data));
+    if (data.op === 'arrive') stopGps(true); // הגענו — מפסיקים לשתף מיקום
+    await kidLoad();
+  });
 }
 function respKid(btn, key, val) { return respOp(btn, { op: 'kid', key, val }); }
 function respDepart(btn, idx) {
@@ -622,18 +662,30 @@ function respDepart(btn, idx) {
       $('#mgo', b).onclick = go;
     });
 }
-function startGps() {
+function startGps(silent) {
   if (!navigator.geolocation) return toast(t('noGeo'));
   if (K.gps) return;
+  if (K.me && K.me.line) LS.set('hs_gps', K.me.line.id); // לזכור — כדי להמשיך לבד כשחוזרים לאפליקציה
   K.gps = navigator.geolocation.watchPosition(p => {
     if (Date.now() - K.lastPos < 25000) return;
     K.lastPos = Date.now();
     api('resp', { token: LS.get('hs_token'), op: 'pos', lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }).catch(() => { });
-  }, e => { toast(t('noGeoPerm')); stopGps(); }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 });
+  }, e => {
+    if (K.gps != null) navigator.geolocation.clearWatch(K.gps);
+    K.gps = null;
+    if (e && e.code === 1) { LS.set('hs_gps', null); geoHelp(); }
+    else if (!silent) toast(t('geoOther'));
+    if (K.me) kidRender();
+  }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 });
   if ('wakeLock' in navigator) navigator.wakeLock.request('screen').then(w => K.wake = w).catch(() => { });
   kidRender();
 }
-function stopGps() {
+function geoHelp() {
+  const pad = LG() === 'en' ? 'padding-left:20px' : 'padding-right:20px';
+  openModal(t('geoTitle'), `${inWhatsApp() ? `<div class="banner bad">${t('inApp')}</div>` : ''}<ol style="font-size:16px;line-height:1.9;${pad}">${isIOS() ? t('geoIOS') : t('geoAndroid')}</ol>`);
+}
+function stopGps(manual) {
+  if (manual) LS.set('hs_gps', null);
   if (K.gps != null) navigator.geolocation.clearWatch(K.gps);
   K.gps = null; K.lastPos = 0;
   if (K.wake) { K.wake.release().catch(() => { }); K.wake = null; }
@@ -721,7 +773,7 @@ function renderShift(m) {
   let h = `<div class="card"><div class="spread"><div><div class="muted small">סה״כ עלו</div><div class="big">${on}<span class="muted" style="font-size:18px"> / ${tot}</span></div></div>
     <div class="row wrap2" style="justify-content:flex-end">${no ? `<span class="pill bad">${no} לא הגיעו</span>` : ''}${late ? `<span class="pill warn">${late} מאחרים</span>` : ''}<span class="pill"><span class="live"></span>${hm(d.day.readAt)}</span></div></div>
     <div class="prog"><i style="width:${tot ? Math.round(on / tot * 100) : 0}%"></i></div>
-    ${canEdit() ? `<div class="row wrap2" style="margin-top:8px"><button class="btn sm sec" onclick="announceModal()">📢 הודעה לכולם</button><button class="btn sm sec" onclick="closeDayModal()">סגירת יום</button><button class="btn sm sec" onclick="openDayModal()">החלפת גיליון</button></div>` : `<div class="muted small" style="margin-top:8px">👁 צפייה בלבד${A.user.groups ? ' · הקבוצות שלך: ' + esc(A.user.groups.split(',').join(', ')) : ''}</div>`}
+    ${canEdit() ? `<div class="row wrap2" style="margin-top:8px"><button class="btn sm sec" onclick="announceModal()">📢 הודעה לכולם</button><button class="btn sm sec" onclick="closeDayModal()">סגירת יום</button><button class="btn sm sec" onclick="openDayModal()">החלפת גיליון</button></div>` : `<div class="muted small" style="margin-top:8px">👁 צפייה · אפשר לסמן 🚫 "לא נוסע/ת"${A.user.groups ? ' · הקבוצות שלך: ' + esc(A.user.groups.split(',').join(', ')) : ''}</div>`}
     <div class="spread small" style="margin-top:8px"><span>📅 ההסעה: <b>${fmtDate(d.day.date)}</b></span>${canEdit() ? `<button class="btn xs sec" onclick="dateModal()">שינוי תאריך</button>` : ''}</div>
     ${d.day.announce ? `<div class="banner info" style="margin:10px 0 0">📢 ${esc(d.day.announce.text)}</div>` : ''}
     ${d.day.warnings && d.day.warnings.length ? `<div class="muted small" style="margin-top:8px">⚠️ ${d.day.warnings.map(esc).join(' · ')}</div>` : ''}</div>`;
@@ -731,7 +783,7 @@ function renderShift(m) {
     const order = { red: 0, orange: 1, blue: 2 };
     const al = d.alerts.slice().sort((a, b) => order[a.lvl] - order[b.lvl]);
     h += `<div class="card"><h2>דורש טיפול (${al.length})</h2>` + al.map(a => `<div class="alert ${a.lvl}"><div class="t">${a.line ? `<b>${esc(a.line)}</b>` : ''}${esc(a.txt)}</div>
-      ${a.phone ? `<a class="btn xs sec" href="${telLink(a.phone)}">📞</a>` : ''}
+      ${a.phone ? `<a class="btn xs sec" href="${telLink(a.phone)}">📞</a><a class="btn xs sec" target="_blank" rel="noopener" href="${waLink(a.phone, '')}">💬</a>` : ''}
       ${a.key && a.lvl !== 'blue' && canEdit() ? `<button class="btn xs sec" onclick="setKid(this,'${a.lineId}','${esc(a.key)}','on')">✓ עלה</button>` : ''}
       ${a.lineId && !a.key && canEdit() ? `<button class="btn xs sec" onclick="lineModal('${a.lineId}')">טיפול</button>` : ''}
       ${a.go ? `<button class="btn xs sec" onclick="adminTab('${a.go === 'pending' ? 'kids' : a.go}')">פתיחה</button>` : ''}</div>`).join('') + `</div>`;
@@ -743,36 +795,47 @@ function renderShift(m) {
 function lineCard(l) {
   const c = l.counts, open = A.open[l.id];
   const pos = l.pos, posAge = pos ? Date.now() - pos.ts : null;
-  const next = l.state === 'route' && l.stations[l.curIdx + 1];
+  const next = l.state === 'route' && l.stations.find((x, i) => i > l.curIdx && !isEmptyStop(x));
+  const firstReal = l.stations.find(x => !isEmptyStop(x)) || l.stations[0];
+  const btns = p => p ? `<a class="btn xs sec" href="${telLink(p)}">📞</a><a class="btn xs sec" target="_blank" rel="noopener" href="${waLink(p, '')}">💬</a>` : '';
   let h = `<div class="card line-card ${l.state}"><div class="spread" onclick="toggleLine('${l.id}')" style="cursor:pointer"><div class="grow"><h2 style="margin:0">${esc(l.name)}</h2>
-    <div class="muted small">${l.state === 'route' ? `יצא מ${esc(l.cur)} ${hm(l.curTs)}${next ? ' ← ' + esc(next.name) + ' ' + esc(next.time) : ''}` : l.state === 'arrived' ? 'הגיע לכפר ' + hm(l.arrivedAt) : 'יציאה ' + esc(l.stations[0] ? l.stations[0].time : '')}</div></div>
+    <div class="muted small">${l.state === 'route' ? `יצא מ${esc(l.cur)} ${hm(l.curTs)}${next ? ' ← ' + esc(next.name) + ' ' + (next.eta ? 'צפי ' + hm(next.eta) : esc(next.time)) : ''}${Math.abs(l.delay || 0) >= 3 ? ` · <b style="color:var(--warn)">${l.delay > 0 ? 'איחור' : 'הקדמה'} ${Math.abs(l.delay)} דק׳</b>` : ''}` : l.state === 'arrived' ? 'הגיע לכפר ' + hm(l.arrivedAt) : 'יציאה ' + esc(firstReal ? firstReal.time : '')}</div></div>
     <div class="center"><span class="pill ${LINE_ST[l.state][1]}">${LINE_ST[l.state][0]}</span><div class="big" style="font-size:20px;margin-top:4px">${c.on || 0}/${c.total}</div></div></div>
     <div class="prog"><i style="width:${c.total ? Math.round((c.on || 0) / c.total * 100) : 0}%"></i></div>
     <div class="row wrap2 small">${c.here ? `<span class="pill info">${c.here} בתחנה</span>` : ''}${c.late ? `<span class="pill warn">${c.late} מאחרים</span>` : ''}${c.no ? `<span class="pill bad">${c.no} לא הגיעו</span>` : ''}${c.cancel ? `<span class="pill">${c.cancel} ביטלו</span>` : ''}${c.unreg ? `<span class="pill">${c.unreg} לא רשומים</span>` : ''}
       ${pos ? `<a class="pill ${posAge < 4 * 60000 ? 'ok' : 'warn'}" style="text-decoration:none" href="https://www.google.com/maps?q=${pos.lat},${pos.lng}" target="_blank" rel="noopener">📍 ${ago(pos.ts)}</a>` : ''}</div>
     <div class="hr"></div>
-    <div class="kv"><b>נהג/ת</b><span>${l.driver && l.driver.name ? esc(l.driver.name) + (l.driver.phone ? ` · <a href="${telLink(l.driver.phone)}">${fmtPhone(l.driver.phone)}</a>` : '') : '<span class="pill warn">חסר</span>'}</span>
-    <b>אחראי/ת</b><span>${l.respName ? esc(l.respName) + (l.respPhone ? ` · <a href="${telLink(l.respPhone)}">${fmtPhone(l.respPhone)}</a>` : '') + (l.respSeen ? ` <span class="muted small">(נראה/תה ${ago(l.respSeen)})</span>` : ' <span class="muted small">(עוד לא נכנס/ה)</span>') : '<span class="pill warn">חסר</span>'}</span>
-    ${l.backupName ? `<b>מחליף/ה</b><span>${esc(l.backupName)}</span>` : ''}${l.msg ? `<b>הודעה</b><span>${esc(l.msg)}</span>` : ''}</div>
+    <div class="kv" style="align-items:center"><b>נהג/ת</b><span class="row wrap2">${l.driver && l.driver.name ? esc(l.driver.name) + ' ' + btns(l.driver.phone) : '<span class="pill warn">חסר</span>'}</span>
+    <b>אחראי/ת</b><span class="row wrap2">${l.respName ? esc(l.respName) + ' ' + btns(l.respPhone) + (l.respSeen ? ` <span class="muted small">(נראה/תה ${ago(l.respSeen)})</span>` : ' <span class="muted small">(עוד לא נכנס/ה)</span>') : '<span class="pill warn">חסר</span>'}</span>
+    ${l.backupName ? `<b>מחליף/ה</b><span class="row wrap2">${esc(l.backupName)} ${btns(l.backupPhone)}</span>` : ''}${l.msg ? `<b>הודעה</b><span>${esc(l.msg)}</span>` : ''}</div>
     <div class="row wrap2" style="margin-top:10px">${canEdit() ? `<button class="btn sm" onclick="lineModal('${l.id}')">⚙️ הגדרת קו</button>
       <button class="btn sm sec" onclick="sendDriver('${l.id}')" ${l.driver && l.driver.phone ? '' : 'disabled'}>💬 שליחה לנהג</button>
       <button class="btn sm sec" onclick="sendResp('${l.id}')" ${l.respPhone ? '' : 'disabled'}>💬 לאחראי/ת</button>` : ''}
       <button class="btn sm sec" onclick="toggleLine('${l.id}')">${open ? 'הסתרת חניכים ▴' : 'חניכים ▾'}</button></div>`;
   if (open) {
-    h += `<div class="hr"></div>` + l.stations.map((s, i) => `<div style="margin-bottom:10px"><div class="spread" style="background:var(--grey);border-radius:10px;padding:6px 10px">
-      <b>${i <= l.curIdx ? '✅ ' : ''}${esc(s.time)} · ${esc(s.name)}</b><span class="muted small">${s.kids.filter(k => k.st.s === 'on').length}/${s.kids.length}</span></div>
-      ${s.kids.map(k => adminKidRow(l.id, k)).join('') || '<div class="muted small" style="padding:6px">אין חניכים</div>'}</div>`).join('');
+    h += `<div class="hr"></div>` + l.stations.map((s, i) => isEmptyStop(s)
+      ? `<div class="st-empty" style="margin-bottom:10px;background:var(--grey);border-radius:10px;padding:6px 10px"><b>${esc(s.time)} · ${esc(s.name)}</b><span class="notag">אין חניכים רשומים — ההסעה לא עוצרת כאן</span></div>`
+      : `<div style="margin-bottom:10px"><div class="spread" style="background:var(--grey);border-radius:10px;padding:6px 10px">
+      <b>${i <= l.curIdx ? '✅ ' : ''}${timeHtml(s)} · ${esc(s.name)}</b><span class="muted small">${s.kids.filter(k => k.st.s === 'on').length}/${s.kids.length}</span></div>
+      ${s.kids.map(k => adminKidRow(l.id, k)).join('') || '<div class="muted small" style="padding:6px">אין חניכים מהקבוצות שלך בתחנה הזו</div>'}</div>`).join('');
     if (canEdit()) h += `<div class="row wrap2"><button class="btn sm sec" onclick="lineStationModal('${l.id}')">תיקון מיקום ההסעה / הגעה</button></div>`;
   }
   return h + `</div>`;
 }
 function adminKidRow(lineId, k) {
-  const call = k.phone ? `<a class="btn xs sec" href="${telLink(k.phone)}">📞</a>` : '';
+  const call = k.phone ? `<a class="btn xs sec" href="${telLink(k.phone)}">📞</a><a class="btn xs sec" target="_blank" rel="noopener" href="${waLink(k.phone, '')}">💬</a>` : '';
+  // צוות צפייה: רק "לא נוסע/ת היום" (ולבטל את זה)
+  const staffAct = !canEdit() && ['none', 'cancel', 'late', 'here'].includes(k.st.s)
+    ? `<button class="btn xs ${k.st.s === 'cancel' ? 'bad' : 'sec'}" title="לא נוסע/ת היום" onclick="staffCancel(this,'${esc(k.key)}','${k.st.s === 'cancel' ? 'clear' : 'cancel'}')">🚫</button>` : '';
   const acts = canEdit() ? `<button class="btn xs ${k.st.s === 'on' ? 'ok' : 'sec'}" onclick="setKid(this,'${lineId}','${esc(k.key)}','${k.st.s === 'on' ? 'clear' : 'on'}')">✓</button>
     <button class="btn xs ${k.st.s === 'no' ? 'bad' : 'sec'}" onclick="setKid(this,'${lineId}','${esc(k.key)}','${k.st.s === 'no' ? 'clear' : 'no'}')">✗</button>
     <button class="btn xs sec" onclick="kidMenu('${lineId}','${esc(k.key)}')">⋯</button>` : '';
   return `<div class="kid"><div class="nm">${esc(k.name)} ${k.isNew ? '<span class="pill info">חדש</span>' : ''}<small>${esc(k.group)}${k.reg ? '' : ' · לא רשום/ה לאפליקציה'}${k.st.by ? ' · ' + esc(k.st.by) : ''}${k.st.ts ? ' · ' + hm(k.st.ts) : ''}</small></div>
-    ${stPill(k.st)}${call}${acts}</div>`;
+    ${stPill(k.st)}${call}${acts}${staffAct}</div>`;
+}
+async function staffCancel(btn, key, val) {
+  if (val === 'cancel' && !confirm('לסמן שהחניך/ה לא נוסע/ת היום? האחראי/ת בהסעה יראה את זה מיד.')) return;
+  await act(btn, async () => { await api('staffCancel', { session: A.s, key, val }); toast(val === 'cancel' ? 'סומן: לא נוסע/ת ✓' : 'בוטל ✓'); await adminLoad(); });
 }
 function toggleLine(id) { A.open[id] = !A.open[id]; adminRenderMain(); }
 async function setKid(btn, lineId, key, val) {
@@ -819,9 +882,10 @@ function lineModal(id) {
 function driverText(l) {
   let t = `שלום ${l.driver.name || ''}, כאן ${A.user.name} מ${VILLAGE} 🚌\nהסעת חזור לכפר — *${l.name}*\n\n`;
   let n = 0;
-  l.stations.forEach(s => { const ks = s.kids.filter(k => k.st.s !== 'cancel'); n += ks.length; t += `*${s.time} — ${s.name}* (${ks.length})\n${ks.map(k => '• ' + k.name).join('\n') || '—'}\n\n`; });
+  l.stations.forEach(s => { const ks = s.kids.filter(k => k.st.s !== 'cancel'); if (!ks.length) return; n += ks.length; t += `*${s.time} — ${s.name}* (${ks.length})\n${ks.map(k => '• ' + k.name).join('\n')}\n\n`; });
   t += `סה״כ ${n} חניכים.\n`;
   if (l.respName) { let rs = ''; l.stations.forEach(s => s.kids.forEach(k => { if (k.key === l.resp) rs = s.name; })); t += `החניך/ה האחראי/ת מטעמנו: *${l.respName}* (עולה ב${rs}). הוא/היא מעדכן/ת אותך על מאחרים.\n`; }
+  t += `\n⚠️ *חשוב:*\n• כל שינוי בקו (מסלול, תחנה, שעה) — רק באישור שלי.\n• *אין עצירות בדרך* (גם לא לקניות או אוכל). אחרי שחניך עלה, הוא יורד *רק בתחנה הסופית בכפר*.\n• עוצרים רק בתחנות שברשימה למעלה.\n`;
   t += `\nלכל שאלה: ${A.user.name} ${fmtPhone(A.user.phone || '')}\nתודה ונסיעה בטוחה!`;
   return t;
 }
